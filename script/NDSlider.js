@@ -16,6 +16,7 @@ export default class NDSlider {
         this.#currentIndex = 0;
 
         this.#initializeEvents();
+        this.#updateButtonStatus();
         // drag evt
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
         this.#wrapper.addEventListener("pointerdown", dragStart);
@@ -34,7 +35,6 @@ export default class NDSlider {
             this.#currentIndex--;
         }
         this.#updateSlidePosition();
-
     }
 
     //다음 slide
@@ -43,7 +43,19 @@ export default class NDSlider {
             this.#currentIndex++;
         }            
         this.#updateSlidePosition();
+    }
 
+    // slide 여러 개 한번에 이동(drag)
+    #moveSlides(steps) {
+        const newSlideIndex = this.#currentIndex + steps;
+        if (newSlideIndex < 0) {
+            this.#currentIndex = 0;
+        } else if (newSlideIndex > this.#slides.length - 1) {
+            this.#currentIndex = this.#slides.length - 1;
+        } else {
+            this.#currentIndex = newSlideIndex;
+        }
+        this.#updateSlidePosition();
     }
 
     #updateSlidePosition() {
@@ -54,6 +66,17 @@ export default class NDSlider {
         setTimeout(() => {
             this.#wrapper.style.transitionDuration = "0s";
         }, 300);
+        this.#updateButtonStatus();
+    }
+
+    #updateButtonStatus(tempIndex = null) {
+        const index = tempIndex === null ? this.#currentIndex : tempIndex;
+        index === 0 
+            ? this.#btnPrev.classList.add("ndslider-button-disabled") 
+            : this.#btnPrev.classList.remove("ndslider-button-disabled");
+        index === this.#slides.length - 1 
+            ? this.#btnNext.classList.add("ndslider-button-disabled") 
+            : this.#btnNext.classList.remove("ndslider-button-disabled");
     }
 
     #dragHandlers() {
@@ -62,7 +85,7 @@ export default class NDSlider {
             dragStartX = 0,
             startTime = 0,
             currentTranslateX = 0,
-            recentlySwiped = false, // 최근에 슬라이드를 넘겼는지 체크
+            recentlySlided = false, // 최근에 슬라이드를 넘겼는지 체크
             lastDragEndTime = 0,
             target;
 
@@ -73,7 +96,7 @@ export default class NDSlider {
             target = e.currentTarget;
 
             const deltaTime = new Date().getTime() - lastDragEndTime;
-            deltaTime < 300 ? recentlySwiped = true : recentlySwiped = false;
+            deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
             currentTranslateX = -(parent.#currentIndex * target.clientWidth);
         }
@@ -83,29 +106,40 @@ export default class NDSlider {
             target.style.transitionDuration = "0s";
             const distanceX = e.pageX - dragStartX;
             let newTranslateX = currentTranslateX + distanceX;
-
+        
             if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - 1 && distanceX < 0)){
                 newTranslateX = currentTranslateX + (distanceX / 3);
             }
-
+        
             target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+        
+            let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
+            tempIndex = Math.min(
+                Math.max(tempIndex , 0),
+                parent.#slides.length - 1
+            );
+
+            parent.#updateButtonStatus(tempIndex);
         }
 
         function dragEnd(e) {
             if (!isDragging) return;
             lastDragEndTime = new Date().getTime();
-
+        
             const distanceX = e.pageX - dragStartX;
-
-            if (recentlySwiped && Math.abs(distanceX) > target.clientWidth * 0.05) {
+            const slidesToMove = Math.round(Math.abs(distanceX) / target.clientWidth); //몇 칸 이동했는지
+            
+            //drag 연속적으로 할 떄 
+            if (recentlySlided && Math.abs(distanceX) > target.clientWidth * 0.05) {
                 distanceX < 0 ? parent.#nextSlide() : parent.#prevSlide();
             } else if (Math.abs(distanceX) >= target.clientWidth * 0.5) {
-                distanceX < 0 ? parent.#nextSlide() : parent.#prevSlide();
+                distanceX < 0 ? parent.#moveSlides(slidesToMove) : parent.#moveSlides(-slidesToMove);
             } else {
                 parent.#updateSlidePosition(); // 슬라이드의 위치를 업데이트
             }
             isDragging = false;
         }
+        
 
         return { dragStart, dragging, dragEnd };
     }
