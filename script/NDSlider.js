@@ -24,10 +24,10 @@ export default class NDSlider {
         const parent = this;
         let isDragging = false,
             dragStartX = 0,
+            startTime = 0,
             currentTranslateX = 0,
             recentlySwiped = false, // 최근에 슬라이드를 넘겼는지 체크
             lastDragEndTime = 0,
-            startTime = 0,
             target;
 
         function dragStart(e) {
@@ -35,7 +35,7 @@ export default class NDSlider {
             dragStartX = e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-            
+
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySwiped = true : recentlySwiped = false;
         }
@@ -43,8 +43,11 @@ export default class NDSlider {
         function dragging(e) {
             if (!isDragging) return;
             const distanceX = e.pageX - dragStartX;
-            const newTranslateX = currentTranslateX + distanceX;
-
+            let newTranslateX = currentTranslateX + distanceX;
+            
+            if(parent.#currentIndex === 0 || parent.#currentIndex === parent.#slides.length - 1) {
+                newTranslateX = currentTranslateX + (distanceX / 3);
+            }
             target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
         }
 
@@ -63,13 +66,14 @@ export default class NDSlider {
                     parent.#currentIndex--;
                 }
             } else {
-                parent.#currentIndex = Math.round(
-                    -currentTranslateX / target.clientWidth
-                );
+                parent.#currentIndex = Math.round(-currentTranslateX / target.clientWidth);
             }
 
             // 최소 및 최대 인덱스 제한
-            parent.#currentIndex = Math.min(Math.max(parent.#currentIndex, 0) , parent.#slides.length - 1);
+            parent.#currentIndex = Math.min(
+                Math.max(parent.#currentIndex, 0),
+                parent.#slides.length - 1
+            );
 
             // 슬라이드 인덱스에 따라 위치 조정
             currentTranslateX = -(parent.#currentIndex * target.clientWidth);
