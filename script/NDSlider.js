@@ -4,7 +4,9 @@ export default class NDSlider {
     #slides;
     #btnPrev;
     #btnNext;
+    #pagination;
     #currentIndex;
+    #option;
 
     constructor(selector, option = {}) {
         // querySelector
@@ -13,10 +15,14 @@ export default class NDSlider {
         this.#slides = this.#wrapper.querySelectorAll(".ndslider-slide");
         this.#btnPrev = this.#slider.querySelector(option.navigation?.prevEl);
         this.#btnNext = this.#slider.querySelector(option.navigation?.nextEl);
+        this.#pagination = this.#slider.querySelector(option.pagination?.el);
         this.#currentIndex = 0;
+        this.#option = option;
 
         this.#initializeEvents();
         this.#updateButtonStatus();
+        this.#createPagination();
+        
         // drag evt
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
         this.#wrapper.addEventListener("pointerdown", dragStart);
@@ -28,6 +34,7 @@ export default class NDSlider {
         this.#btnPrev?.addEventListener("click", () => this.#prevSlide());
         this.#btnNext?.addEventListener("click", () => this.#nextSlide());
     }
+
 
     // 이전 slide
     #prevSlide(){
@@ -70,6 +77,7 @@ export default class NDSlider {
     }
 
     #updateButtonStatus(tempIndex = null) {
+        if(!this.#btnPrev || !this.#btnNext) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
         index === 0 
             ? this.#btnPrev.classList.add("ndslider-button-disabled") 
@@ -77,6 +85,33 @@ export default class NDSlider {
         index === this.#slides.length - 1 
             ? this.#btnNext.classList.add("ndslider-button-disabled") 
             : this.#btnNext.classList.remove("ndslider-button-disabled");
+    }
+
+    #updateBulletStatus(e , index){
+        const activeBullet = document.querySelector(".ndslider-pagination-bullet-active");
+        activeBullet?.classList.remove("ndslider-pagination-bullet-active");
+        e.currentTarget.classList.add("ndslider-pagination-bullet-active");
+        this.#currentIndex = index;
+        this.#updateSlidePosition();
+    }
+    
+    //페이지네이션 생성
+    #createPagination() {
+        //ndslider-pagination-bullet-active
+        if(!this.#pagination) return;
+
+        this.#option.pagination.clickable 
+            ? this.#pagination.classList.add("ndslider-pagination-clickable","ndslider-pagination-bullets")
+            : this.#pagination.classList.add("ndslider-pagination-bullets");
+            
+        this.#slides.forEach((slide,index)=>{
+            const span = document.createElement("span");
+            span.classList.add("ndslider-pagination-bullet");
+            this.#currentIndex === index && span.classList.add("ndslider-pagination-bullet-active");
+            span.addEventListener("click",(e) => this.#updateBulletStatus(e,index));
+            this.#pagination.appendChild(span);
+            
+        });
     }
 
     #dragHandlers() {
