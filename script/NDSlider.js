@@ -35,7 +35,6 @@ export default class NDSlider {
         this.#btnNext?.addEventListener("click", () => this.#nextSlide());
     }
 
-
     // 이전 slide
     #prevSlide(){
         if (this.#currentIndex > 0) {
@@ -65,6 +64,7 @@ export default class NDSlider {
         this.#updateSlidePosition();
     }
 
+    // 슬라이드 위치 변경
     #updateSlidePosition() {
         const targetWidth = this.#wrapper.clientWidth;
         const newTranslateX = -(this.#currentIndex * targetWidth);
@@ -73,9 +73,12 @@ export default class NDSlider {
         setTimeout(() => {
             this.#wrapper.style.transitionDuration = "0s";
         }, 300);
+
         this.#updateButtonStatus();
+        this.#updateBulletStatus();
     }
 
+    // 버튼 활성화 /비활성화
     #updateButtonStatus(tempIndex = null) {
         if(!this.#btnPrev || !this.#btnNext) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
@@ -87,12 +90,12 @@ export default class NDSlider {
             : this.#btnNext.classList.remove("ndslider-button-disabled");
     }
 
-    #updateBulletStatus(e , index){
-        const activeBullet = document.querySelector(".ndslider-pagination-bullet-active");
-        activeBullet?.classList.remove("ndslider-pagination-bullet-active");
-        e.currentTarget.classList.add("ndslider-pagination-bullet-active");
-        this.#currentIndex = index;
-        this.#updateSlidePosition();
+    // pagination bullet active class 추가
+    #updateBulletStatus(){
+        if(!this.#pagination) return;
+        const activeBullet = this.#pagination.querySelector(".ndslider-pagination-bullet-active");
+        activeBullet.classList.remove("ndslider-pagination-bullet-active");
+        this.#pagination.children[this.#currentIndex].classList.add("ndslider-pagination-bullet-active");
     }
     
     //페이지네이션 생성
@@ -103,17 +106,24 @@ export default class NDSlider {
         this.#option.pagination.clickable 
             ? this.#pagination.classList.add("ndslider-pagination-clickable","ndslider-pagination-bullets")
             : this.#pagination.classList.add("ndslider-pagination-bullets");
-            
-        this.#slides.forEach((slide,index)=>{
+        // 생성
+        for(let i = 0 ; i < this.#slides.length ; i ++) {
             const span = document.createElement("span");
-            span.classList.add("ndslider-pagination-bullet");
-            this.#currentIndex === index && span.classList.add("ndslider-pagination-bullet-active");
-            span.addEventListener("click",(e) => this.#updateBulletStatus(e,index));
+            span.className = "ndslider-pagination-bullet";
+            i === 0 && span.classList.add("ndslider-pagination-bullet-active");
             this.#pagination.appendChild(span);
-            
-        });
+        }
+        // 페이지네이션 클릭 시 슬라이드 이동
+        this.#pagination.addEventListener("click",(e)=>{
+            if(!e.target.classList.contains("ndslider-pagination-bullet")) return;
+            const children = Array.from(e.currentTarget.children);
+            const index = children.indexOf(e.target);
+            this.#currentIndex = index;
+            this.#updateSlidePosition();
+        }); 
     }
 
+    //드래그 관련
     #dragHandlers() {
         const parent = this;
         let isDragging = false,
