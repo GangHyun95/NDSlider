@@ -5,6 +5,7 @@ const mySlider = new NDSlider(".mySlider", {
         prevEl: ".ndslider-button-prev",
         nextEl: ".ndslider-button-next",
     },
+    loop: true,
     pagination: {
         el: ".ndslider-pagination",
         clickable: true,

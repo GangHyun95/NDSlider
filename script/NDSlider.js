@@ -22,7 +22,7 @@ export default class NDSlider {
         this.#initializeEvents();
         this.#updateButtonStatus();
         this.#createPagination();
-        
+
         // drag evt
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
         this.#wrapper.addEventListener("pointerdown", dragStart);
@@ -42,7 +42,6 @@ export default class NDSlider {
         }
         this.#updateSlidePosition();
     }
-
     //다음 slide
     #nextSlide(){
         if (this.#currentIndex < this.#slides.length - 1) {
@@ -80,7 +79,7 @@ export default class NDSlider {
 
     // 버튼 활성화 /비활성화
     #updateButtonStatus(tempIndex = null) {
-        if(!this.#btnPrev || !this.#btnNext) return;
+        if(!this.#btnPrev || !this.#btnNext || this.#option.loop) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
         index === 0 
             ? this.#btnPrev.classList.add("ndslider-button-disabled") 
@@ -115,7 +114,7 @@ export default class NDSlider {
         }
         // 페이지네이션 클릭 시 슬라이드 이동
         this.#pagination.addEventListener("click",(e)=>{
-            if(!e.target.classList.contains("ndslider-pagination-bullet")) return;
+            if(!e.currentTarget.classList.contains("ndslider-pagination-clickable") || !e.target.classList.contains("ndslider-pagination-bullet")) return;
             const children = Array.from(e.currentTarget.children);
             const index = children.indexOf(e.target);
             this.#currentIndex = index;
@@ -151,19 +150,18 @@ export default class NDSlider {
             target.style.transitionDuration = "0s";
             const distanceX = e.pageX - dragStartX;
             let newTranslateX = currentTranslateX + distanceX;
-        
-            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - 1 && distanceX < 0)){
+
+            if(!parent.#option.loop && ((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - 1 && distanceX < 0))) {
                 newTranslateX = currentTranslateX + (distanceX / 3);
             }
         
             target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
-        
+            
             let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
             tempIndex = Math.min(
                 Math.max(tempIndex , 0),
                 parent.#slides.length - 1
             );
-
             parent.#updateButtonStatus(tempIndex);
         }
 
