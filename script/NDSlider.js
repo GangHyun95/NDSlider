@@ -31,8 +31,7 @@ export default class NDSlider {
 
         this.#initializeEvents();
         this.#updateButtonStatus();
-        this.#createPagination();
-        this.#updateBulletStatus();
+        this.#createPagination();   
 
         // drag evt
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
@@ -49,7 +48,7 @@ export default class NDSlider {
     // 이전 slide
     #prevSlide(){
         this.#currentIndex--;
-        if(!this.#option.loop && this.#currentIndex > this.#slides.length - 1) {
+        if(!this.#option.loop && this.#currentIndex < 0) {
             this.#currentIndex = 0;
         }
         this.#updateSlidePosition();
@@ -89,21 +88,18 @@ export default class NDSlider {
                     this.#wrapper.style.transitionDuration = "0s";
                     this.#currentIndex = 1;
     
-                    const loopTranslateX = -(this.#currentIndex * targetWidth);
-                    this.#wrapper.style.transform = `translate3d(${loopTranslateX}px, 0, 0)`;
+                    this.#wrapper.style.transform = `translate3d(${-(this.#currentIndex * targetWidth)}px, 0, 0)`;
     
                 } else if (this.#currentIndex === 0) {
                     this.#wrapper.style.transitionDuration = "0s";
                     this.#currentIndex = this.#slides.length - 2;
     
-                    const loopTranslateX = -(this.#currentIndex * targetWidth);
-                    this.#wrapper.style.transform = `translate3d(${loopTranslateX}px, 0, 0)`;
+                    this.#wrapper.style.transform = `translate3d(${-(this.#currentIndex * targetWidth)}px, 0, 0)`;
                 }
             } else {
                 this.#wrapper.style.transitionDuration = "0s";
             }
         }, 300);
-        console.log(this.#currentIndex);
         this.#updateButtonStatus();
         this.#updateBulletStatus();
     }
@@ -124,21 +120,19 @@ export default class NDSlider {
     // pagination bullet active class 추가
     #updateBulletStatus(){
         if(!this.#pagination) return;
-        
-        // 현재 페이지 인덱스 계산
+
         let activeIndex = this.#currentIndex;
         
-        // loop 옵션 사용 시 인덱스 조정
         if(this.#option.loop) {
             if(activeIndex === 0) {
-                activeIndex = this.#slides.length - 3;  // 복제된 마지막 슬라이드로
+                activeIndex = this.#slides.length - 3;
             } else if(activeIndex === this.#slides.length - 1) {
-                activeIndex = 0; // 복제된 첫 번째 슬라이드로
+                activeIndex = 0;
             } else {
                 activeIndex = this.#currentIndex - 1;
             }
         }
-    
+
         const activeBullet = this.#pagination.querySelector(".ndslider-pagination-bullet-active");
         activeBullet.classList.remove("ndslider-pagination-bullet-active");
         this.#pagination.children[activeIndex].classList.add("ndslider-pagination-bullet-active");
