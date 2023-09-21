@@ -188,12 +188,17 @@ export default class NDSlider {
             dragStartX = e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-
+        
             target.style.transitionDuration = "0s";
 
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
+            if (parent.#currentIndex === 0) {
+                parent.#currentIndex = parent.#slides.length -2;
+            } else if (parent.#currentIndex === parent.#slides.length - 1) {
+                parent.#currentIndex = 1;
+            }
             currentTranslateX = -(parent.#currentIndex * target.clientWidth);
         }
 
@@ -207,7 +212,7 @@ export default class NDSlider {
             }
         
             target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
-            
+        
             let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
             tempIndex = Math.min(
                 Math.max(tempIndex , 0),
