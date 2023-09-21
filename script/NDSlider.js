@@ -19,6 +19,12 @@ export default class NDSlider {
         this.#pagination = this.#slider.querySelector(option.pagination?.el);
         this.#option = option;
 
+        this.#setupSlides(option);
+        this.#initializeEvents();
+        this.#updateButtonStatus();
+        this.#createPagination();   
+    }
+    #setupSlides(option) {
         if(option.loop){
             const cloneFirst = this.#slides[0].cloneNode(true);
             const cloneLast = this.#slides[this.#slides.length - 1].cloneNode(true);
@@ -28,21 +34,16 @@ export default class NDSlider {
             this.#currentIndex = 1;
             this.#wrapper.style.transform = `translate3d(${-(this.#currentIndex * this.#wrapper.clientWidth)}px, 0, 0)`;
         }
-
-        this.#initializeEvents();
-        this.#updateButtonStatus();
-        this.#createPagination();   
-
-        // drag evt
-        const { dragStart, dragging, dragEnd } = this.#dragHandlers();
-        this.#wrapper.addEventListener("pointerdown", dragStart);
-        document.addEventListener("pointermove", dragging);
-        document.addEventListener("pointerup", dragEnd);
     }
     // 이벤트 리스너 등록
     #initializeEvents() {
         this.#btnPrev?.addEventListener("click", () => this.#prevSlide());
         this.#btnNext?.addEventListener("click", () => this.#nextSlide());
+        // drag evt
+        const { dragStart, dragging, dragEnd } = this.#dragHandlers();
+        this.#wrapper.addEventListener("pointerdown", dragStart);
+        document.addEventListener("pointermove", dragging);
+        document.addEventListener("pointerup", dragEnd);
     }
 
     // 이전 slide
@@ -63,22 +64,19 @@ export default class NDSlider {
         }
         this.#updateSlidePosition();
     }
-
-    // slide 여러 개 한번에 이동(drag)
+    //slide 여러 개 한번에 이동
     #moveSlides(steps) {
         const newSlideIndex = this.#currentIndex + steps;
-        if (newSlideIndex < 0) {
-            this.#currentIndex = 0;
-        } else if (newSlideIndex > this.#slides.length - 1) {
-            this.#currentIndex = this.#slides.length - 1;
-        } else {
-            this.#currentIndex = newSlideIndex;
-        }
+        this.#currentIndex = Math.max(
+            0,
+            Math.min(newSlideIndex, this.#slides.length - 1)
+        );
         this.#updateSlidePosition();
     }
 
     // 슬라이드 위치 변경
     #updateSlidePosition() {
+        console.log(this.#currentIndex);
         const parent = this;
         const targetWidth = this.#wrapper.clientWidth;
         const newTranslateX = -(this.#currentIndex * targetWidth);
@@ -127,17 +125,15 @@ export default class NDSlider {
     #updateBulletStatus(){
         if(!this.#pagination) return;
 
-        let activeIndex = this.#currentIndex;
-        
-        if(this.#option.loop) {
-            if(activeIndex === 0) {
-                activeIndex = this.#slides.length - 3;
-            } else if(activeIndex === this.#slides.length - 1) {
-                activeIndex = 0;
-            } else {
-                activeIndex = this.#currentIndex - 1;
-            }
-        }
+        const getActiveIndex = () => {
+            if (!this.#option.loop) return this.#currentIndex;
+
+            if (this.#currentIndex === 0) return this.#slides.length - 3;
+            if (this.#currentIndex === this.#slides.length - 1) return 0;
+            return this.#currentIndex - 1;
+        };
+
+        const activeIndex = getActiveIndex();
 
         const activeBullet = this.#pagination.querySelector(".ndslider-pagination-bullet-active");
         activeBullet?.classList.remove("ndslider-pagination-bullet-active");
@@ -194,10 +190,12 @@ export default class NDSlider {
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
-            if (parent.#currentIndex === 0) {
-                parent.#currentIndex = parent.#slides.length -2;
-            } else if (parent.#currentIndex === parent.#slides.length - 1) {
-                parent.#currentIndex = 1;
+            if(parent.#option.loop) {
+                if (parent.#currentIndex === 0) {
+                    parent.#currentIndex = parent.#slides.length -2;
+                } else if (parent.#currentIndex === parent.#slides.length - 1) {
+                    parent.#currentIndex = 1;
+                }
             }
             currentTranslateX = -(parent.#currentIndex * target.clientWidth);
         }
