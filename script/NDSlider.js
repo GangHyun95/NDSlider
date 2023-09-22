@@ -17,6 +17,7 @@ export default class NDSlider {
         this.#btnPrev = this.#slider.querySelector(option.navigation?.prevEl);
         this.#btnNext = this.#slider.querySelector(option.navigation?.nextEl);
         this.#pagination = this.#slider.querySelector(option.pagination?.el);
+        option.slidesPerView = option.slidesPerView || 1;
         this.#option = option;
 
         this.#setupSlides(option);
@@ -26,15 +27,28 @@ export default class NDSlider {
     }
     #setupSlides(option) {
         if(option.loop){
-            const cloneFirst = this.#slides[0].cloneNode(true);
-            const cloneLast = this.#slides[this.#slides.length - 1].cloneNode(true);
-            this.#wrapper.appendChild(cloneFirst);
-            this.#wrapper.insertBefore(cloneLast, this.#wrapper.firstChild);
+            for(let i = 0 ; i < option.slidesPerView ; i++ ) {
+                const cloneFirst = this.#slides[i].cloneNode(true);
+                const cloneLast = this.#slides[this.#slides.length - 1 - i].cloneNode(true);
+                this.#wrapper.appendChild(cloneFirst);
+                this.#wrapper.insertBefore(cloneLast, this.#wrapper.firstChild);
+            }
+            
             this.#slides = this.#wrapper.querySelectorAll(".ndslider-slide");
-            this.#currentIndex = 1;
-            this.#wrapper.style.transform = `translate3d(${-(this.#currentIndex * this.#wrapper.clientWidth)}px, 0, 0)`;
+            this.#currentIndex = option.slidesPerView;
+            this.#translateSlides();
         }
+        this.#slides.forEach((slide) => {
+            slide.style.width = `${this.#wrapper.clientWidth / option.slidesPerView}px`;
+        })
     }
+
+    #translateSlides(customTranslateX = null) {
+        const targetWidth = this.#wrapper.clientWidth / this.#option.slidesPerView;
+        const newTranslateX = customTranslateX === null ? -(this.#currentIndex * targetWidth) : customTranslateX;
+        this.#wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+    }
+    
     // 이벤트 리스너 등록
     #initializeEvents() {
         this.#btnPrev?.addEventListener("click", () => this.#prevSlide());
@@ -76,12 +90,9 @@ export default class NDSlider {
 
     // 슬라이드 위치 변경
     #updateSlidePosition() {
-        console.log(this.#currentIndex);
         const parent = this;
-        const targetWidth = this.#wrapper.clientWidth;
-        const newTranslateX = -(this.#currentIndex * targetWidth);
         this.#wrapper.style.transitionDuration = "0.3s";
-        this.#wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+        this.#translateSlides();
 
         this.#wrapper.addEventListener("transitionstart",function callback(){
             if(!parent.#option.loop) return;
@@ -95,11 +106,11 @@ export default class NDSlider {
             if(parent.#currentIndex === parent.#slides.length - 1) {
                 parent.#wrapper.style.transitionDuration = "0s";
                 parent.#currentIndex = 1;
-                parent.#wrapper.style.transform = `translate3d(${-(parent.#currentIndex * targetWidth)}px, 0, 0)`;
+                parent.#translateSlides();
             } else if (parent.#currentIndex === 0) {
                 parent.#wrapper.style.transitionDuration = "0s";
                 parent.#currentIndex = parent.#slides.length - 2;
-                parent.#wrapper.style.transform = `translate3d(${-(parent.#currentIndex * targetWidth)}px, 0, 0)`;
+                parent.#translateSlides();
             }
             parent.#isTransitioning = false;
             parent.#wrapper.removeEventListener("transitionend",callback);
@@ -209,7 +220,7 @@ export default class NDSlider {
                 newTranslateX = currentTranslateX + (distanceX / 3);
             }
         
-            target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+            parent.#translateSlides(newTranslateX);  // 변경된 부분
         
             let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
             tempIndex = Math.min(
