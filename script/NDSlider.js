@@ -28,6 +28,8 @@ export default class NDSlider {
         };
     }
     #setupSlider() {
+        const directionClass = this.#option.direction === "vertical" ? "ndslider-vertical" : "ndslider-horizontal";
+        this.#elements.slider.classList.add(directionClass);
         this.#setupEvents();
         this.#createPagination();
         this.#setupSlides();
@@ -51,19 +53,36 @@ export default class NDSlider {
     #setupSlides() {
         const { slidesPerView, spaceBetween } = this.#option;
         const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
-        const slideWidth = (this.#elements.wrapper.clientWidth - totalSpaceBetween) / slidesPerView;
-        
+
+        const slideSize = this.#option.direction === "vertical"
+        ? (this.#elements.wrapper.clientHeight - totalSpaceBetween) / slidesPerView
+        : (this.#elements.wrapper.clientWidth - totalSpaceBetween) / slidesPerView;
+
         this.#elements.slides.forEach((slide, index) => {
-            slide.style.width = `${slideWidth}px`;
-            slide.style.marginRight = (index < this.#elements.slides.length - 1) 
-                ? `${spaceBetween}px` : "0px";
+            if(this.#option.direction === "vertical") {
+                slide.style.height = `${slideSize}px`;
+                slide.style.marginBottom = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
+            } else {
+                slide.style.width = `${slideSize}px`;
+                slide.style.marginRight = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
+            }
         });
         this.#updateSlidePosition();
     }
-    #translateSlides(customTranslateX = null) {
-        const targetWidth = this.#elements.slides[this.#currentIndex].clientWidth + this.#option.spaceBetween;
-        const newTranslateX = customTranslateX === null ? -(this.#currentIndex * targetWidth) : customTranslateX;
-        this.#elements.wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+    #translateSlides(customTranslate = null) {
+        const targetSize = this.#option.direction === "vertical"
+        ? this.#elements.slides[this.#currentIndex].clientHeight + this.#option.spaceBetween
+        : this.#elements.slides[this.#currentIndex].clientWidth + this.#option.spaceBetween;
+
+        const newTranslate = customTranslate === null 
+        ? -(this.#currentIndex * targetSize) 
+        : customTranslate;
+
+        const transformValue = this.#option.direction === "vertical"
+        ? `translate3d(0, ${newTranslate}px, 0)`
+        : `translate3d(${newTranslate}px, 0, 0)`;
+    
+        this.#elements.wrapper.style.transform = transformValue;
     }
     #prevSlide() {
         if (this.#currentIndex > 0) this.#currentIndex--;
@@ -138,10 +157,10 @@ export default class NDSlider {
         if (!pagination) return;
     
         const totalBullets = slides.length - this.#option.slidesPerView + 1;
-    
+        const directionClass = this.#option.direction === "vertical" ? "ndslider-pagination-vertical" : "ndslider-pagination-horizontal";
         this.#option.pagination.clickable 
-            ? pagination.classList.add("ndslider-pagination-clickable", "ndslider-pagination-bullets")
-            : pagination.classList.add("ndslider-pagination-bullets");
+            ? pagination.classList.add("ndslider-pagination-clickable", "ndslider-pagination-bullets" , directionClass)
+            : pagination.classList.add("ndslider-pagination-bullets" , directionClass);
     
         // 생성
         for (let i = 0; i < totalBullets; i++) {
@@ -164,40 +183,48 @@ export default class NDSlider {
     #dragHandlers() {
         const parent = this
         let isDragging = false,
-            dragStartX = 0,
+            dragStartPoint = 0,
             startTime = 0,
-            currentTranslateX = 0,
+            currentTranslatePos = 0,
             recentlySlided = false, // 최근에 슬라이드를 넘겼는지 체크
             target,
             lastDragEndTime = 0;
 
         function dragStart(e) {
             isDragging = true;
-            dragStartX = e.pageX;
+            dragStartPoint = parent.#option.direction === "vertical" ? e.pageY : e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-            const slideWidth = parent.#elements.slides[parent.#currentIndex].clientWidth + parent.#option.spaceBetween;
+            const slideSize = parent.#option.direction === "vertical" 
+            ? parent.#elements.slides[parent.#currentIndex].clientHeight + parent.#option.spaceBetween
+            : parent.#elements.slides[parent.#currentIndex].clientWidth + parent.#option.spaceBetween;
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
             parent.#stopAutoSlide();
 
-            currentTranslateX = -(parent.#currentIndex * slideWidth);
+            currentTranslatePos = -(parent.#currentIndex * slideSize);
         }
 
         function dragging(e) {
             if (!isDragging) return;
             target.style.transitionDuration = "0s";
-            const distanceX = e.pageX - dragStartX;
-            let newTranslateX = currentTranslateX + distanceX;
+            const distance = parent.#option.direction === "vertical"
+            ? e.pageY - dragStartPoint
+            : e.pageX - dragStartPoint;
+            let newTranslatePos = currentTranslatePos + distance;
 
-            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#elements.slides.length - parent.#option.slidesPerView && distanceX < 0)) {
-                newTranslateX = currentTranslateX + (distanceX / 3);
+            if((parent.#currentIndex === 0 && distance > 0) || (parent.#currentIndex === parent.#elements.slides.length - parent.#option.slidesPerView && distance < 0)) {
+                newTranslatePos = currentTranslatePos + (distance / 3);
             }
         
-            parent.#translateSlides(newTranslateX);
+            parent.#translateSlides(newTranslatePos);
+
+            let targetSize = parent.#option.direction === "vertical" 
+            ? target.clientHeight
+            : target.clientWidth;
             
-            let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
+            let tempIndex = parent.#currentIndex - Math.sign(distance) * Math.round(Math.abs(distance) / targetSize);
             tempIndex = Math.min(
                 Math.max(tempIndex , 0),
                 parent.#elements.slides.length - 1
@@ -210,17 +237,21 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
         
-            const slideWidth = parent.#elements.slides[parent.#currentIndex].clientWidth;
-            const distanceX = e.pageX - dragStartX;
-            const slidesToMove = Math.round(Math.abs(distanceX) / slideWidth);
-            const slideThreshold = slideWidth * 0.5;
-            const smallSlideThreshold = slideWidth * 0.05;
+            const slideSize = parent.#option.direction === "vertical" 
+            ? parent.#elements.slides[parent.#currentIndex].clientHeight
+            : parent.#elements.slides[parent.#currentIndex].clientWidth;
+            const distance = parent.#option.direction === "vertical"
+            ? e.pageY - dragStartPoint
+            : e.pageX - dragStartPoint;
+            const slidesToMove = Math.round(Math.abs(distance) / slideSize);
+            const slideThreshold = slideSize * 0.5;
+            const smallSlideThreshold = slideSize * 0.05;
 
-            if (recentlySlided && Math.abs(distanceX) > smallSlideThreshold) {
+            if (recentlySlided && Math.abs(distance) > smallSlideThreshold) {
                 // 연속적으로 드래그 할 때의 로직
-                distanceX < 0 ? parent.#nextSlide() : parent.#prevSlide();
-            } else if (Math.abs(distanceX) >= slideThreshold) {
-                parent.#moveSlides(distanceX < 0 ? slidesToMove : -slidesToMove);
+                distance < 0 ? parent.#nextSlide() : parent.#prevSlide();
+            } else if (Math.abs(distance) >= slideThreshold) {
+                parent.#moveSlides(distance < 0 ? slidesToMove : -slidesToMove);
             } else {
                 parent.#updateSlidePosition();
             }
