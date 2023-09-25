@@ -10,6 +10,11 @@ export default class NDSlider {
         this.#setupSlider();
         this.#startAutoSlide();
     }
+
+    getSize(ele) {
+        return this.#option.direction === "vertical" ? ele.clientHeight : ele.clientWidth;
+    }
+
     /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
         option.slidesPerView = option.slidesPerView || 1;
@@ -54,9 +59,7 @@ export default class NDSlider {
         const { slidesPerView, spaceBetween } = this.#option;
         const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
 
-        const slideSize = this.#option.direction === "vertical"
-        ? (this.#elements.wrapper.clientHeight - totalSpaceBetween) / slidesPerView
-        : (this.#elements.wrapper.clientWidth - totalSpaceBetween) / slidesPerView;
+        const slideSize = (this.getSize(this.#elements.wrapper) - totalSpaceBetween) / slidesPerView;
 
         this.#elements.slides.forEach((slide, index) => {
             if(this.#option.direction === "vertical") {
@@ -69,10 +72,9 @@ export default class NDSlider {
         });
         this.#updateSlidePosition();
     }
+
     #translateSlides(customTranslate = null) {
-        const targetSize = this.#option.direction === "vertical"
-        ? this.#elements.slides[this.#currentIndex].clientHeight + this.#option.spaceBetween
-        : this.#elements.slides[this.#currentIndex].clientWidth + this.#option.spaceBetween;
+        const targetSize = this.getSize(this.#elements.slides[this.#currentIndex]) + this.#option.spaceBetween;
 
         const newTranslate = customTranslate === null 
         ? -(this.#currentIndex * targetSize) 
@@ -195,9 +197,7 @@ export default class NDSlider {
             dragStartPoint = parent.#option.direction === "vertical" ? e.pageY : e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-            const slideSize = parent.#option.direction === "vertical" 
-            ? parent.#elements.slides[parent.#currentIndex].clientHeight + parent.#option.spaceBetween
-            : parent.#elements.slides[parent.#currentIndex].clientWidth + parent.#option.spaceBetween;
+            const slideSize = parent.getSize(parent.#elements.slides[parent.#currentIndex]) + parent.#option.spaceBetween;
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
@@ -220,9 +220,7 @@ export default class NDSlider {
         
             parent.#translateSlides(newTranslatePos);
 
-            let targetSize = parent.#option.direction === "vertical" 
-            ? target.clientHeight
-            : target.clientWidth;
+            let targetSize = parent.getSize(target);
             
             let tempIndex = parent.#currentIndex - Math.sign(distance) * Math.round(Math.abs(distance) / targetSize);
             tempIndex = Math.min(
@@ -237,9 +235,7 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
         
-            const slideSize = parent.#option.direction === "vertical" 
-            ? parent.#elements.slides[parent.#currentIndex].clientHeight
-            : parent.#elements.slides[parent.#currentIndex].clientWidth;
+            const slideSize = parent.getSize(parent.#elements.slides[parent.#currentIndex]);
             const distance = parent.#option.direction === "vertical"
             ? e.pageY - dragStartPoint
             : e.pageX - dragStartPoint;
