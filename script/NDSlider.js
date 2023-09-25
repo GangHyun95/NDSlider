@@ -5,7 +5,7 @@ export default class NDSlider {
     #btnPrev;
     #btnNext;
     #pagination;
-    #currentIndex;
+    #currentIndex = 0;
     #option;
 
     constructor(selector, option = {}) {
@@ -16,12 +16,15 @@ export default class NDSlider {
         this.#btnPrev = this.#slider.querySelector(option.navigation?.prevEl);
         this.#btnNext = this.#slider.querySelector(option.navigation?.nextEl);
         this.#pagination = this.#slider.querySelector(option.pagination?.el);
-        this.#currentIndex = 0;
+        option.slidesPerView = option.slidesPerView || 1;
+        option.spaceBetween = option.spaceBetween || 0;
         this.#option = option;
 
         this.#initializeEvents();
         this.#updateButtonStatus();
         this.#createPagination();
+        this.#setupSlides(option);
+        console.log(option);
     }
     // 이벤트 리스너 등록
     #initializeEvents() {
@@ -34,6 +37,16 @@ export default class NDSlider {
         document.addEventListener("pointerup", dragEnd);
     }
 
+    #setupSlides(option) {
+        this.#slides.forEach((slide) => slide.style.width = `${this.#wrapper.clientWidth / option.slidesPerView}px`);
+    }
+
+    #translateSlides(customTranslateX = null) {
+        const targetWidth = this.#slides[this.#currentIndex].clientWidth;
+        const newTranslateX = customTranslateX === null ? -(this.#currentIndex * targetWidth) : customTranslateX;
+        this.#wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+    }
+
     // 이전 slide
     #prevSlide(){
         if (this.#currentIndex > 0) {
@@ -43,7 +56,7 @@ export default class NDSlider {
     }
     //다음 slide
     #nextSlide(){
-        if (this.#currentIndex < this.#slides.length - 1) {
+        if (this.#currentIndex < this.#slides.length - this.#option.slidesPerView) {
             this.#currentIndex++;
         }            
         this.#updateSlidePosition();
@@ -52,22 +65,17 @@ export default class NDSlider {
     // slide 여러 개 한번에 이동(drag)
     #moveSlides(steps) {
         const newSlideIndex = this.#currentIndex + steps;
-        if (newSlideIndex < 0) {
-            this.#currentIndex = 0;
-        } else if (newSlideIndex > this.#slides.length - 1) {
-            this.#currentIndex = this.#slides.length - 1;
-        } else {
-            this.#currentIndex = newSlideIndex;
-        }
+        this.#currentIndex = Math.max(
+            0,
+            Math.min(newSlideIndex, this.#slides.length - this.#option.slidesPerView)
+        );
         this.#updateSlidePosition();
     }
 
     // 슬라이드 위치 변경
     #updateSlidePosition() {
-        const targetWidth = this.#wrapper.clientWidth;
-        const newTranslateX = -(this.#currentIndex * targetWidth);
         this.#wrapper.style.transitionDuration = "0.3s";
-        this.#wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+        this.#translateSlides();
         setTimeout(() => {
             this.#wrapper.style.transitionDuration = "0s";
         }, 300);
@@ -83,7 +91,7 @@ export default class NDSlider {
         index === 0 
             ? this.#btnPrev.classList.add("ndslider-button-disabled") 
             : this.#btnPrev.classList.remove("ndslider-button-disabled");
-        index === this.#slides.length - 1 
+        index === this.#slides.length - this.#option.slidesPerView 
             ? this.#btnNext.classList.add("ndslider-button-disabled") 
             : this.#btnNext.classList.remove("ndslider-button-disabled");
     }
@@ -98,50 +106,56 @@ export default class NDSlider {
     
     //페이지네이션 생성
     #createPagination() {
-        //ndslider-pagination-bullet-active
-        if(!this.#pagination) return;
-
+        if (!this.#pagination) return;
+    
+        const totalBullets = this.#slides.length - this.#option.slidesPerView + 1;
+    
         this.#option.pagination.clickable 
-            ? this.#pagination.classList.add("ndslider-pagination-clickable","ndslider-pagination-bullets")
+            ? this.#pagination.classList.add("ndslider-pagination-clickable", "ndslider-pagination-bullets")
             : this.#pagination.classList.add("ndslider-pagination-bullets");
+    
         // 생성
-        for(let i = 0 ; i < this.#slides.length ; i ++) {
+        for (let i = 0; i < totalBullets; i++) {
             const span = document.createElement("span");
             span.className = "ndslider-pagination-bullet";
             i === 0 && span.classList.add("ndslider-pagination-bullet-active");
             this.#pagination.appendChild(span);
         }
+    
         // 페이지네이션 클릭 시 슬라이드 이동
-        this.#pagination.addEventListener("click",(e)=>{
-            if(!e.currentTarget.classList.contains("ndslider-pagination-clickable") || !e.target.classList.contains("ndslider-pagination-bullet")) return;
+        this.#pagination.addEventListener("click", (e) => {
+            if (!e.currentTarget.classList.contains("ndslider-pagination-clickable") || !e.target.classList.contains("ndslider-pagination-bullet")) return;
             const children = Array.from(e.currentTarget.children);
             const index = children.indexOf(e.target);
             this.#currentIndex = index;
             this.#updateSlidePosition();
-        }); 
+        });
     }
+    
 
     //드래그 관련
     #dragHandlers() {
-        const parent = this;
+        const parent = this
+        // dragStart 때 초기화 되는 변수
         let isDragging = false,
             dragStartX = 0,
             startTime = 0,
             currentTranslateX = 0,
             recentlySlided = false, // 최근에 슬라이드를 넘겼는지 체크
-            lastDragEndTime = 0,
-            target;
+            target,
+            lastDragEndTime = 0;
 
         function dragStart(e) {
             isDragging = true;
             dragStartX = e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-
+            
+            const slideWidth = target.clientWidth / parent.#option.slidesPerView;
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
 
-            currentTranslateX = -(parent.#currentIndex * target.clientWidth);
+            currentTranslateX = -(parent.#currentIndex * slideWidth);
         }
 
         function dragging(e) {
@@ -150,11 +164,11 @@ export default class NDSlider {
             const distanceX = e.pageX - dragStartX;
             let newTranslateX = currentTranslateX + distanceX;
 
-            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - 1 && distanceX < 0)) {
+            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - parent.#option.slidesPerView && distanceX < 0)) {
                 newTranslateX = currentTranslateX + (distanceX / 3);
             }
         
-            target.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+            parent.#translateSlides(newTranslateX);
             
             let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
             tempIndex = Math.min(
@@ -166,23 +180,26 @@ export default class NDSlider {
 
         function dragEnd(e) {
             if (!isDragging) return;
+        
             lastDragEndTime = new Date().getTime();
         
+            const slideWidth = target.clientWidth / parent.#option.slidesPerView;
             const distanceX = e.pageX - dragStartX;
-            const slidesToMove = Math.round(Math.abs(distanceX) / target.clientWidth); //몇 칸 이동했는지
-            
-            //drag 연속적으로 할 떄 
-            if (recentlySlided && Math.abs(distanceX) > target.clientWidth * 0.05) {
+            const slidesToMove = Math.round(Math.abs(distanceX) / slideWidth);
+            const slideThreshold = slideWidth * 0.5;
+            const smallSlideThreshold = slideWidth * 0.05;
+        
+            if (recentlySlided && Math.abs(distanceX) > smallSlideThreshold) {
+                // 연속적으로 드래그 할 때의 로직
                 distanceX < 0 ? parent.#nextSlide() : parent.#prevSlide();
-            } else if (Math.abs(distanceX) >= target.clientWidth * 0.5) {
-                distanceX < 0 ? parent.#moveSlides(slidesToMove) : parent.#moveSlides(-slidesToMove);
+            } else if (Math.abs(distanceX) >= slideThreshold) {
+                parent.#moveSlides(distanceX < 0 ? slidesToMove : -slidesToMove);
             } else {
-                parent.#updateSlidePosition(); // 슬라이드의 위치를 업데이트
+                parent.#updateSlidePosition();
             }
+        
             isDragging = false;
         }
-        
-
         return { dragStart, dragging, dragEnd };
     }
 }
