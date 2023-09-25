@@ -1,64 +1,76 @@
 export default class NDSlider {
-    #slider;
-    #wrapper;
-    #slides;
-    #btnPrev;
-    #btnNext;
-    #pagination;
-    #currentIndex = 0;
     #option;
+    #elements;
+    #currentIndex = 0;
 
     constructor(selector, option = {}) {
-        // querySelector
-        this.#slider = document.querySelector(selector);
-        this.#wrapper = this.#slider.querySelector(".ndslider-wrapper");
-        this.#slides = this.#wrapper.querySelectorAll(".ndslider-slide");
-        this.#btnPrev = this.#slider.querySelector(option.navigation?.prevEl);
-        this.#btnNext = this.#slider.querySelector(option.navigation?.nextEl);
-        this.#pagination = this.#slider.querySelector(option.pagination?.el);
+        this.#initializeOptions(option);
+        this.#initializeElements(selector);
+        this.#setupSlider();
+    }
+
+    #initializeOptions(option) {
         option.slidesPerView = option.slidesPerView || 1;
         option.spaceBetween = option.spaceBetween || 0;
         this.#option = option;
-
-        this.#initializeEvents();
-        this.#updateButtonStatus();
-        this.#createPagination();
-        this.#setupSlides(option);
-        console.log(option);
     }
-    // 이벤트 리스너 등록
-    #initializeEvents() {
-        this.#btnPrev?.addEventListener("click", () => this.#prevSlide());
-        this.#btnNext?.addEventListener("click", () => this.#nextSlide());
-        // drag evt
+
+    #initializeElements(selector) {
+        const slider = document.querySelector(selector);
+        this.#elements = {
+            slider,
+            wrapper: slider.querySelector(".ndslider-wrapper"),
+            slides: slider.querySelectorAll(".ndslider-slide"),
+            btnPrev: slider.querySelector(this.#option.navigation?.prevEl),
+            btnNext: slider.querySelector(this.#option.navigation?.nextEl),
+            pagination: slider.querySelector(this.#option.pagination?.el)
+        };
+    }
+
+    #setupSlider() {
+        this.#setupEvents();
+        this.#createPagination();
+        this.#setupSlides();
+    }
+
+    #setupEvents() {
+        this.#elements.btnPrev?.addEventListener("click", () => this.#prevSlide());
+        this.#elements.btnNext?.addEventListener("click", () => this.#nextSlide());
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
-        this.#wrapper.addEventListener("pointerdown", dragStart);
+        this.#elements.wrapper.addEventListener("pointerdown", dragStart);
         document.addEventListener("pointermove", dragging);
         document.addEventListener("pointerup", dragEnd);
     }
 
-    #setupSlides(option) {
-        this.#slides.forEach((slide) => slide.style.width = `${this.#wrapper.clientWidth / option.slidesPerView}px`);
+    #setupSlides() {
+        const { slidesPerView, spaceBetween } = this.#option;
+        const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
+        const slideWidth = (this.#elements.wrapper.clientWidth - totalSpaceBetween) / slidesPerView;
+        
+        this.#elements.slides.forEach((slide, index) => {
+            slide.style.width = `${slideWidth}px`;
+            slide.style.marginRight = (index < this.#elements.slides.length - 1) 
+                ? `${spaceBetween}px` : "0px";
+        });
+        this.#updateSlidePosition();
     }
 
     #translateSlides(customTranslateX = null) {
-        const targetWidth = this.#slides[this.#currentIndex].clientWidth;
+        const targetWidth = this.#elements.slides[this.#currentIndex].clientWidth + this.#option.spaceBetween;
         const newTranslateX = customTranslateX === null ? -(this.#currentIndex * targetWidth) : customTranslateX;
-        this.#wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
+        this.#elements.wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
     }
 
     // 이전 slide
-    #prevSlide(){
-        if (this.#currentIndex > 0) {
-            this.#currentIndex--;
-        }
+    #prevSlide() {
+        if (this.#currentIndex > 0) this.#currentIndex--;
         this.#updateSlidePosition();
     }
-    //다음 slide
-    #nextSlide(){
-        if (this.#currentIndex < this.#slides.length - this.#option.slidesPerView) {
+
+    #nextSlide() {
+        if (this.#currentIndex < this.#elements.slides.length - this.#option.slidesPerView) {
             this.#currentIndex++;
-        }            
+        }
         this.#updateSlidePosition();
     }
 
@@ -67,17 +79,17 @@ export default class NDSlider {
         const newSlideIndex = this.#currentIndex + steps;
         this.#currentIndex = Math.max(
             0,
-            Math.min(newSlideIndex, this.#slides.length - this.#option.slidesPerView)
+            Math.min(newSlideIndex, this.#elements.slides.length - this.#option.slidesPerView)
         );
         this.#updateSlidePosition();
     }
 
     // 슬라이드 위치 변경
     #updateSlidePosition() {
-        this.#wrapper.style.transitionDuration = "0.3s";
+        this.#elements.wrapper.style.transitionDuration = "0.3s";
         this.#translateSlides();
         setTimeout(() => {
-            this.#wrapper.style.transitionDuration = "0s";
+            this.#elements.wrapper.style.transitionDuration = "0s";
         }, 300);
 
         this.#updateButtonStatus();
@@ -86,44 +98,47 @@ export default class NDSlider {
 
     // 버튼 활성화 /비활성화
     #updateButtonStatus(tempIndex = null) {
-        if(!this.#btnPrev || !this.#btnNext) return;
+        const { btnPrev, btnNext } = this.#elements;
+        if(!btnPrev || !btnNext) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
         index === 0 
-            ? this.#btnPrev.classList.add("ndslider-button-disabled") 
-            : this.#btnPrev.classList.remove("ndslider-button-disabled");
-        index === this.#slides.length - this.#option.slidesPerView 
-            ? this.#btnNext.classList.add("ndslider-button-disabled") 
-            : this.#btnNext.classList.remove("ndslider-button-disabled");
+            ? btnPrev.classList.add("ndslider-button-disabled") 
+            : btnPrev.classList.remove("ndslider-button-disabled");
+        index === this.#elements.slides.length - this.#option.slidesPerView 
+            ? btnNext.classList.add("ndslider-button-disabled") 
+            : btnNext.classList.remove("ndslider-button-disabled");
     }
 
     // pagination bullet active class 추가
     #updateBulletStatus(){
-        if(!this.#pagination) return;
-        const activeBullet = this.#pagination.querySelector(".ndslider-pagination-bullet-active");
+        const { pagination } = this.#elements;
+        if( !pagination ) return;
+        const activeBullet = pagination.querySelector(".ndslider-pagination-bullet-active");
         activeBullet.classList.remove("ndslider-pagination-bullet-active");
-        this.#pagination.children[this.#currentIndex].classList.add("ndslider-pagination-bullet-active");
+        pagination.children[this.#currentIndex].classList.add("ndslider-pagination-bullet-active");
     }
     
     //페이지네이션 생성
     #createPagination() {
-        if (!this.#pagination) return;
+        const { pagination , slides} = this.#elements;
+        if (!pagination) return;
     
-        const totalBullets = this.#slides.length - this.#option.slidesPerView + 1;
+        const totalBullets = slides.length - this.#option.slidesPerView + 1;
     
         this.#option.pagination.clickable 
-            ? this.#pagination.classList.add("ndslider-pagination-clickable", "ndslider-pagination-bullets")
-            : this.#pagination.classList.add("ndslider-pagination-bullets");
+            ? pagination.classList.add("ndslider-pagination-clickable", "ndslider-pagination-bullets")
+            : pagination.classList.add("ndslider-pagination-bullets");
     
         // 생성
         for (let i = 0; i < totalBullets; i++) {
             const span = document.createElement("span");
             span.className = "ndslider-pagination-bullet";
             i === 0 && span.classList.add("ndslider-pagination-bullet-active");
-            this.#pagination.appendChild(span);
+            pagination.appendChild(span);
         }
     
         // 페이지네이션 클릭 시 슬라이드 이동
-        this.#pagination.addEventListener("click", (e) => {
+        pagination.addEventListener("click", (e) => {
             if (!e.currentTarget.classList.contains("ndslider-pagination-clickable") || !e.target.classList.contains("ndslider-pagination-bullet")) return;
             const children = Array.from(e.currentTarget.children);
             const index = children.indexOf(e.target);
@@ -131,7 +146,6 @@ export default class NDSlider {
             this.#updateSlidePosition();
         });
     }
-    
 
     //드래그 관련
     #dragHandlers() {
@@ -164,7 +178,7 @@ export default class NDSlider {
             const distanceX = e.pageX - dragStartX;
             let newTranslateX = currentTranslateX + distanceX;
 
-            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#slides.length - parent.#option.slidesPerView && distanceX < 0)) {
+            if((parent.#currentIndex === 0 && distanceX > 0) || (parent.#currentIndex === parent.#elements.slides.length - parent.#option.slidesPerView && distanceX < 0)) {
                 newTranslateX = currentTranslateX + (distanceX / 3);
             }
         
@@ -173,7 +187,7 @@ export default class NDSlider {
             let tempIndex = parent.#currentIndex - Math.sign(distanceX) * Math.round(Math.abs(distanceX) / target.clientWidth);
             tempIndex = Math.min(
                 Math.max(tempIndex , 0),
-                parent.#slides.length - 1
+                parent.#elements.slides.length - 1
             );
             parent.#updateButtonStatus(tempIndex);
         }
