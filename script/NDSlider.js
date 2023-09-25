@@ -2,19 +2,20 @@ export default class NDSlider {
     #option;
     #elements;
     #currentIndex = 0;
+    #intervalId;
 
     constructor(selector, option = {}) {
         this.#initializeOptions(option);
         this.#initializeElements(selector);
         this.#setupSlider();
+        this.#startAutoSlide();
     }
-
+    /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
         option.slidesPerView = option.slidesPerView || 1;
         option.spaceBetween = option.spaceBetween || 0;
         this.#option = option;
     }
-
     #initializeElements(selector) {
         const slider = document.querySelector(selector);
         this.#elements = {
@@ -26,22 +27,27 @@ export default class NDSlider {
             pagination: slider.querySelector(this.#option.pagination?.el)
         };
     }
-
     #setupSlider() {
         this.#setupEvents();
         this.#createPagination();
         this.#setupSlides();
     }
-
     #setupEvents() {
-        this.#elements.btnPrev?.addEventListener("click", () => this.#prevSlide());
-        this.#elements.btnNext?.addEventListener("click", () => this.#nextSlide());
+        this.#elements.btnPrev?.addEventListener("click", () => {
+            this.#restartAutoSlide();
+            this.#prevSlide()
+        });
+        this.#elements.btnNext?.addEventListener("click", () => {
+            this.#restartAutoSlide();
+            this.#nextSlide()
+        });
         const { dragStart, dragging, dragEnd } = this.#dragHandlers();
         this.#elements.wrapper.addEventListener("pointerdown", dragStart);
         document.addEventListener("pointermove", dragging);
         document.addEventListener("pointerup", dragEnd);
     }
 
+    /* 슬라이드 조작 관련 메서드 */
     #setupSlides() {
         const { slidesPerView, spaceBetween } = this.#option;
         const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
@@ -54,26 +60,23 @@ export default class NDSlider {
         });
         this.#updateSlidePosition();
     }
-
     #translateSlides(customTranslateX = null) {
         const targetWidth = this.#elements.slides[this.#currentIndex].clientWidth + this.#option.spaceBetween;
         const newTranslateX = customTranslateX === null ? -(this.#currentIndex * targetWidth) : customTranslateX;
         this.#elements.wrapper.style.transform = `translate3d(${newTranslateX}px, 0, 0)`;
     }
-
-    // 이전 slide
     #prevSlide() {
         if (this.#currentIndex > 0) this.#currentIndex--;
         this.#updateSlidePosition();
     }
-
     #nextSlide() {
         if (this.#currentIndex < this.#elements.slides.length - this.#option.slidesPerView) {
             this.#currentIndex++;
+        } else if(this.#option.autoplay?.delay && (this.#currentIndex === this.#elements.slides.length - this.#option.slidesPerView)) {
+            this.#currentIndex = 0;
         }
         this.#updateSlidePosition();
     }
-
     // slide 여러 개 한번에 이동(drag)
     #moveSlides(steps) {
         const newSlideIndex = this.#currentIndex + steps;
@@ -83,8 +86,6 @@ export default class NDSlider {
         );
         this.#updateSlidePosition();
     }
-
-    // 슬라이드 위치 변경
     #updateSlidePosition() {
         this.#elements.wrapper.style.transitionDuration = "0.3s";
         this.#translateSlides();
@@ -95,8 +96,25 @@ export default class NDSlider {
         this.#updateButtonStatus();
         this.#updateBulletStatus();
     }
+    
+    #startAutoSlide() {
+        if(!this.#option.autoplay || !this.#option.autoplay.delay) return;
+        this.#intervalId = setInterval(() => this.#nextSlide(),this.#option.autoplay.delay);
+    }
 
-    // 버튼 활성화 /비활성화
+    #stopAutoSlide() {
+        if (this.#intervalId) {
+            clearInterval(this.#intervalId);
+            this.#intervalId = null;
+        }
+    }
+
+    #restartAutoSlide() {
+        this.#stopAutoSlide();
+        this.#startAutoSlide();
+    }
+
+    /* UI 업데이트 관련 메서드*/
     #updateButtonStatus(tempIndex = null) {
         const { btnPrev, btnNext } = this.#elements;
         if(!btnPrev || !btnNext) return;
@@ -108,8 +126,6 @@ export default class NDSlider {
             ? btnNext.classList.add("ndslider-button-disabled") 
             : btnNext.classList.remove("ndslider-button-disabled");
     }
-
-    // pagination bullet active class 추가
     #updateBulletStatus(){
         const { pagination } = this.#elements;
         if( !pagination ) return;
@@ -117,8 +133,6 @@ export default class NDSlider {
         activeBullet.classList.remove("ndslider-pagination-bullet-active");
         pagination.children[this.#currentIndex].classList.add("ndslider-pagination-bullet-active");
     }
-    
-    //페이지네이션 생성
     #createPagination() {
         const { pagination , slides} = this.#elements;
         if (!pagination) return;
@@ -137,7 +151,6 @@ export default class NDSlider {
             pagination.appendChild(span);
         }
     
-        // 페이지네이션 클릭 시 슬라이드 이동
         pagination.addEventListener("click", (e) => {
             if (!e.currentTarget.classList.contains("ndslider-pagination-clickable") || !e.target.classList.contains("ndslider-pagination-bullet")) return;
             const children = Array.from(e.currentTarget.children);
@@ -147,10 +160,9 @@ export default class NDSlider {
         });
     }
 
-    //드래그 관련
+    //드래그 관련 메서드
     #dragHandlers() {
         const parent = this
-        // dragStart 때 초기화 되는 변수
         let isDragging = false,
             dragStartX = 0,
             startTime = 0,
@@ -164,10 +176,11 @@ export default class NDSlider {
             dragStartX = e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-            
-            const slideWidth = target.clientWidth / parent.#option.slidesPerView;
+            const slideWidth = parent.#elements.slides[parent.#currentIndex].clientWidth + parent.#option.spaceBetween;
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
+
+            parent.#stopAutoSlide();
 
             currentTranslateX = -(parent.#currentIndex * slideWidth);
         }
@@ -197,12 +210,12 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
         
-            const slideWidth = target.clientWidth / parent.#option.slidesPerView;
+            const slideWidth = parent.#elements.slides[parent.#currentIndex].clientWidth;
             const distanceX = e.pageX - dragStartX;
             const slidesToMove = Math.round(Math.abs(distanceX) / slideWidth);
             const slideThreshold = slideWidth * 0.5;
             const smallSlideThreshold = slideWidth * 0.05;
-        
+
             if (recentlySlided && Math.abs(distanceX) > smallSlideThreshold) {
                 // 연속적으로 드래그 할 때의 로직
                 distanceX < 0 ? parent.#nextSlide() : parent.#prevSlide();
@@ -211,7 +224,7 @@ export default class NDSlider {
             } else {
                 parent.#updateSlidePosition();
             }
-        
+            parent.#restartAutoSlide(); 
             isDragging = false;
         }
         return { dragStart, dragging, dragEnd };
