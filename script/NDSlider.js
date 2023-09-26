@@ -16,7 +16,7 @@ export default class NDSlider {
     }
 
     getLastIndex() {
-        return Math.ceil(this.#elements.slides.length - this.#option.slidesPerView) / this.#option.slidesPerGroup;
+        return Math.ceil((this.#elements.slides.length - this.#option.slidesPerView) / this.#option.slidesPerGroup);
     }
 
     /* 초기화 및 설정 관련 메서드 */
