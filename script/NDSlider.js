@@ -77,20 +77,6 @@ export default class NDSlider {
         });
         this.#updateSlidePosition();
     }
-
-    #translateSlides(customTranslate = null) {
-        const targetSize = this.getSize(this.#elements.slides[this.#currentIndex]) + this.#option.spaceBetween;
-
-        const newTranslate = customTranslate === null 
-        ? -(this.#currentIndex * targetSize) * this.#option.slidesPerGroup 
-        : customTranslate;
-
-        const transformValue = this.#option.direction === "vertical"
-        ? `translate3d(0, ${newTranslate}px, 0)`
-        : `translate3d(${newTranslate}px, 0, 0)`;
-    
-        this.#elements.wrapper.style.transform = transformValue;
-    }
     #prevSlide() {
         if (this.#currentIndex > 0) this.#currentIndex--;
         this.#updateSlidePosition();
@@ -110,19 +96,43 @@ export default class NDSlider {
             0,
             Math.min(newSlideIndex, this.getLastIndex())
         );
+
         this.#updateSlidePosition();
     }
     #updateSlidePosition() {
         this.#elements.wrapper.style.transitionDuration = "0.3s";
-        this.#translateSlides();
+    
+        const isLastSlide = this.#currentIndex === this.getLastIndex();
+        if (isLastSlide && this.#option.slidesPerGroup && this.#elements.slides.length % this.#option.slidesPerGroup !== 0 ) {
+            const targetSize = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
+            const totalSlides = this.#elements.slides.length;
+            const newTranslate = -((totalSlides - this.#option.slidesPerView) * targetSize);
+            this.#translateSlides(newTranslate);
+        } else {
+            this.#translateSlides();
+        }
+    
         setTimeout(() => {
             this.#elements.wrapper.style.transitionDuration = "0s";
         }, 300);
-
+    
         this.#updateButtonStatus();
         this.#updateBulletStatus();
     }
     
+    #translateSlides(customTranslate = null) {
+        const targetSize = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
+
+        const newTranslate = customTranslate === null 
+            ? -(this.#currentIndex * targetSize) * this.#option.slidesPerGroup 
+            : customTranslate;
+
+        const transformValue = this.#option.direction === "vertical"
+            ? `translate3d(0, ${newTranslate}px, 0)`
+            : `translate3d(${newTranslate}px, 0, 0)`;
+    
+        this.#elements.wrapper.style.transform = transformValue;
+    }
     #startAutoSlide() {
         if(!this.#option.autoplay || !this.#option.autoplay.delay) return;
         this.#intervalId = setInterval(() => this.#nextSlide(),this.#option.autoplay.delay);
@@ -145,7 +155,7 @@ export default class NDSlider {
         const { btnPrev, btnNext } = this.#elements;
         if(!btnPrev || !btnNext) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
-        index === 0 
+        index <= 0 
             ? btnPrev.classList.add("ndslider-button-disabled") 
             : btnPrev.classList.remove("ndslider-button-disabled");
         index >= this.getLastIndex()
@@ -160,7 +170,7 @@ export default class NDSlider {
         pagination.children[this.#currentIndex].classList.add("ndslider-pagination-bullet-active");
     }
     #createPagination() {
-        const { pagination , slides} = this.#elements;
+        const { pagination} = this.#elements;
         if (!pagination) return;
     
         const totalBullets = this.getLastIndex() + 1;
@@ -202,21 +212,22 @@ export default class NDSlider {
             dragStartPoint = parent.#option.direction === "vertical" ? e.pageY : e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
-            const slideSize = parent.getSize(parent.#elements.slides[parent.#currentIndex]) + parent.#option.spaceBetween;
+            const slideSize = parent.getSize(parent.#elements.slides[0]) + parent.#option.spaceBetween;
+            console.log(slideSize);
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
-
             parent.#stopAutoSlide();
-
-            currentTranslatePos = -(parent.#currentIndex * slideSize) * parent.#option.slidesPerGroup;
+            currentTranslatePos = parent.#currentIndex === parent.getLastIndex() &&  parent.#elements.slides.length % parent.#option.slidesPerGroup !== 0 
+                ? -(parent.#currentIndex * slideSize) * parent.#option.slidesPerGroup + (slideSize * slidesPerGroup - 1)
+                : -(parent.#currentIndex * slideSize) * parent.#option.slidesPerGroup;
         }
 
         function dragging(e) {
             if (!isDragging) return;
             target.style.transitionDuration = "0s";
             const distance = parent.#option.direction === "vertical"
-            ? e.pageY - dragStartPoint
-            : e.pageX - dragStartPoint;
+                ? e.pageY - dragStartPoint
+                : e.pageX - dragStartPoint;
             let newTranslatePos = currentTranslatePos + distance;
 
             if((parent.#currentIndex === 0 && distance > 0) || (parent.#currentIndex >=  parent.getLastIndex() && distance < 0) ) {
@@ -240,10 +251,12 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
         
-            const slideSize = parent.getSize(parent.#elements.wrapper);
+            const slideSize = parent.#option.slidesPerGroup > 1 
+                ? parent.getSize(parent.#elements.wrapper)
+                : parent.getSize(parent.#elements.slides[0]);
             const distance = parent.#option.direction === "vertical"
-            ? e.pageY - dragStartPoint
-            : e.pageX - dragStartPoint;
+                ? e.pageY - dragStartPoint
+                : e.pageX - dragStartPoint;
             const slidesToMove = Math.round(Math.abs(distance) / slideSize);
             const slideThreshold = slideSize * 0.5;
             const smallSlideThreshold = slideSize * 0.05;
