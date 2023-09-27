@@ -21,10 +21,13 @@ export default class NDSlider {
 
     /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
-        option.slidesPerView = option.slidesPerView || 1;
-        option.spaceBetween = option.spaceBetween || 0;
-        option.slidesPerGroup = option.slidesPerGroup || 1;
-        this.#option = option;
+        const defaultOptions = {
+            slidesPerView : 1,
+            spaceBetween : 0,
+            slidesPerGroup : 1,
+        }
+
+        this.#option = {...defaultOptions , ...option};
     }
     #initializeElements(selector) {
         const slider = document.querySelector(selector);
@@ -218,7 +221,7 @@ export default class NDSlider {
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();
             currentTranslatePos = parent.#currentIndex === parent.getLastIndex() &&  parent.#elements.slides.length % parent.#option.slidesPerGroup !== 0 
-                ? -(parent.#currentIndex * slideSize) * parent.#option.slidesPerGroup + (slideSize * slidesPerGroup - 1)
+                ? -((parent.#elements.slides.length - parent.#option.slidesPerView) * slideSize)
                 : -(parent.#currentIndex * slideSize) * parent.#option.slidesPerGroup;
         }
 
