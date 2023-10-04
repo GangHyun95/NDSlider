@@ -16,7 +16,7 @@ export default class NDSlider {
     }
 
     getLastIndex() {
-        return Math.ceil((this.#elements.slides.length - this.#option.slidesPerView) / this.#option.slidesPerGroup);
+        return Math.ceil((this.#elements.slides.length - (this.#option.slidesPerView * this.#option.grid.rows)) / this.#option.slidesPerGroup);
     }
 
     /* 초기화 및 설정 관련 메서드 */
@@ -25,6 +25,9 @@ export default class NDSlider {
             slidesPerView : 1,
             spaceBetween : 0,
             slidesPerGroup : 1,
+            grid: {
+                rows:1,
+            },
         }
 
         this.#option = {...defaultOptions , ...option};
@@ -43,6 +46,21 @@ export default class NDSlider {
     #setupSlider() {
         const directionClass = this.#option.direction === "vertical" ? "ndslider-vertical" : "ndslider-horizontal";
         this.#elements.slider.classList.add(directionClass);
+        const { direction, grid, spaceBetween } = this.#option;
+        const isVertical = direction === "vertical";
+        if (grid.rows > 1) {
+            const targetProperty = isVertical ? "height" : "width";
+            const currentSize = parseFloat(window.getComputedStyle(this.#elements.wrapper)[targetProperty]);
+            const newSize = currentSize + spaceBetween;
+        
+            this.#elements.wrapper.style[targetProperty] = newSize + "px";
+            this.#elements.slider.classList.add("ndslider-grid");
+        
+            if (!isVertical) {
+                this.#elements.slider.classList.add("ndslider-grid-column");
+            }
+        }
+
         this.#setupEvents();
         this.#createPagination();
         this.#setupSlides();
@@ -64,22 +82,27 @@ export default class NDSlider {
 
     /* 슬라이드 조작 관련 메서드 */
     #setupSlides() {
-        const { slidesPerView, spaceBetween } = this.#option;
-        const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
+        const { slidesPerView, spaceBetween, grid } = this.#option;
+        const totalSpaceBetween = spaceBetween * (slidesPerView - !(grid.rows > 1));
 
         const slideSize = (this.getSize(this.#elements.wrapper) - totalSpaceBetween) / slidesPerView;
 
         this.#elements.slides.forEach((slide, index) => {
             if(this.#option.direction === "vertical") {
                 slide.style.height = `${slideSize}px`;
+                slide.style.marginLeft = (grid.rows > 1 && index >= slidesPerView) && spaceBetween + "px";
                 slide.style.marginBottom = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
+                slide.style.width = `calc((100% - ${spaceBetween * (grid.rows - 1)}px) / ${grid.rows})`;
             } else {
                 slide.style.width = `${slideSize}px`;
                 slide.style.marginRight = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
+                slide.style.marginTop = (grid.rows > 1 && index % grid?.rows !== 0) && spaceBetween + "px";
+                slide.style.height = `calc((100% - ${spaceBetween * (grid.rows - 1)}px) / ${grid.rows})`;
             }
         });
         this.#updateSlidePosition();
     }
+    
     #prevSlide() {
         if (this.#currentIndex > 0) this.#currentIndex--;
         this.#updateSlidePosition();
@@ -216,7 +239,6 @@ export default class NDSlider {
             startTime = new Date().getTime(); // 시작 시간 저장
             target = e.currentTarget;
             const slideSize = parent.getSize(parent.#elements.slides[0]) + parent.#option.spaceBetween;
-            console.log(slideSize);
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();

@@ -182,3 +182,11 @@ button.ndslider-pagination-bullet {
 .ndslider-pagination-horizontal.ndslider-pagination-bullets .ndslider-pagination-bullet {
     margin: 0 4px;
 }
+.ndslider-grid > .ndslider-wrapper {
+    flex-wrap: wrap;
+}
+
+.ndslider-grid-column > .ndslider-wrapper {
+    flex-wrap: wrap;
+    flex-direction: column;
+}
