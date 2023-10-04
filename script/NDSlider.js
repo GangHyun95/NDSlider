@@ -16,8 +16,21 @@ export default class NDSlider {
     }
 
     getLastIndex() {
-        return Math.ceil((this.#elements.slides.length - (this.#option.slidesPerView * this.#option.grid.rows)) / this.#option.slidesPerGroup);
+        const totalSlides = this.#elements.slides.length; 
+        const slidesPerPage = this.#option.slidesPerView * this.#option.grid.rows; 
+        const slidesPerGroup = this.#option.slidesPerGroup; 
+        
+        const groupsPerPage = slidesPerPage % slidesPerGroup === 0 ? 
+            slidesPerPage / slidesPerGroup : 
+            (slidesPerPage - slidesPerPage % slidesPerGroup) / slidesPerGroup + 1;
+    
+        const totalGroups = Math.ceil(totalSlides / slidesPerGroup);
+        const totalPages = Math.ceil(totalGroups / groupsPerPage);
+    
+        return totalPages - 1; 
     }
+    
+    
 
     /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
@@ -44,10 +57,10 @@ export default class NDSlider {
         };
     }
     #setupSlider() {
-        const directionClass = this.#option.direction === "vertical" ? "ndslider-vertical" : "ndslider-horizontal";
-        this.#elements.slider.classList.add(directionClass);
         const { direction, grid, spaceBetween } = this.#option;
         const isVertical = direction === "vertical";
+        const directionClass = isVertical ? "ndslider-vertical" : "ndslider-horizontal";
+        this.#elements.slider.classList.add(directionClass);
         if (grid.rows > 1) {
             const targetProperty = isVertical ? "height" : "width";
             const currentSize = parseFloat(window.getComputedStyle(this.#elements.wrapper)[targetProperty]);
