@@ -16,22 +16,29 @@ export default class NDSlider {
     }
 
     getLastIndex() {
+        // slidesPerPage % slidesPerGroup : 한 페이지의 마지막 그룹에 몇개의 슬라이드가 있는 지 알려줌.
+        // (slidesPerPage - slidesPerPage % slidesPerGroup) : 마지막 그룹을 제외한 ,완전히 채워진 그룹에 있는 슬라이드 개수
+        // (slidesPerPage - slidesPerPage % slidesPerGroup) / slidesPerGroup : 완전히 채워진 그룹이 몇개인지?
+        // + 1 : 마지막 그룹도 (완전히 채워지지 않은) 하나의 그룹으로 취급하기 위함.
+        // 페이지당 표시되는 그룹의 수 groupsPerPage
         const totalSlides = this.#elements.slides.length; 
         const slidesPerPage = this.#option.slidesPerView * this.#option.grid.rows; 
         const slidesPerGroup = this.#option.slidesPerGroup; 
-        
-        const groupsPerPage = slidesPerPage % slidesPerGroup === 0 ? 
-            slidesPerPage / slidesPerGroup : 
-            (slidesPerPage - slidesPerPage % slidesPerGroup) / slidesPerGroup + 1;
     
-        const totalGroups = Math.ceil(totalSlides / slidesPerGroup);
-        const totalPages = Math.ceil(totalGroups / groupsPerPage);
+        let totalPages;
     
+        if(slidesPerGroup === 1) {
+            totalPages = totalSlides - slidesPerPage + 1;
+        } else {
+            const groupsPerPage = slidesPerPage % slidesPerGroup === 0 
+                ? slidesPerPage / slidesPerGroup 
+                : (slidesPerPage - slidesPerPage % slidesPerGroup) / slidesPerGroup + 1;
+            
+            const totalGroups = Math.ceil(totalSlides / slidesPerGroup);
+            totalPages = Math.ceil(totalGroups / groupsPerPage);
+        }
         return totalPages - 1; 
     }
-    
-    
-
     /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
         const defaultOptions = {
@@ -42,7 +49,6 @@ export default class NDSlider {
                 rows:1,
             },
         }
-
         this.#option = {...defaultOptions , ...option};
     }
     #initializeElements(selector) {
@@ -96,7 +102,7 @@ export default class NDSlider {
     /* 슬라이드 조작 관련 메서드 */
     #setupSlides() {
         const { slidesPerView, spaceBetween, grid } = this.#option;
-        const totalSpaceBetween = spaceBetween * (slidesPerView - !(grid.rows > 1));
+        const totalSpaceBetween = spaceBetween * (slidesPerView - (grid.rows < 2 ? 1 : 0));
 
         const slideSize = (this.getSize(this.#elements.wrapper) - totalSpaceBetween) / slidesPerView;
 
@@ -104,12 +110,12 @@ export default class NDSlider {
             if(this.#option.direction === "vertical") {
                 slide.style.height = `${slideSize}px`;
                 slide.style.marginLeft = (grid.rows > 1 && index >= slidesPerView) && spaceBetween + "px";
-                slide.style.marginBottom = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
+                slide.style.marginBottom = (index < this.#elements.slides.length - grid.rows) ? `${spaceBetween}px` : "0px";
                 slide.style.width = `calc((100% - ${spaceBetween * (grid.rows - 1)}px) / ${grid.rows})`;
             } else {
                 slide.style.width = `${slideSize}px`;
-                slide.style.marginRight = (index < this.#elements.slides.length - 1) ? `${spaceBetween}px` : "0px";
-                slide.style.marginTop = (grid.rows > 1 && index % grid?.rows !== 0) && spaceBetween + "px";
+                slide.style.marginRight = (index < this.#elements.slides.length - grid.rows) ? `${spaceBetween}px` : "0px";
+                slide.style.marginTop = (grid.rows > 1 && index % grid.rows !== 0) && spaceBetween + "px";
                 slide.style.height = `calc((100% - ${spaceBetween * (grid.rows - 1)}px) / ${grid.rows})`;
             }
         });
@@ -142,9 +148,9 @@ export default class NDSlider {
         this.#elements.wrapper.style.transitionDuration = "0.3s";
     
         const isLastSlide = this.#currentIndex === this.getLastIndex();
-        if (isLastSlide && this.#option.slidesPerGroup && this.#elements.slides.length % this.#option.slidesPerGroup !== 0 ) {
+        if (isLastSlide && this.#elements.slides.length % this.#option.slidesPerGroup !== 0 ) {
             const targetSize = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
-            const totalSlides = this.#elements.slides.length;
+            const totalSlides = this.#elements.slides.length - this.#option.slidesPerView * this.#option.grid.rows;
             const newTranslate = -((totalSlides - this.#option.slidesPerView) * targetSize);
             this.#translateSlides(newTranslate);
         } else {
