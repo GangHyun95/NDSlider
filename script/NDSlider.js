@@ -19,7 +19,6 @@ export default class NDSlider {
         const totalSlides = this.#elements.slides.length;
         const {slidesPerView, slidesPerGroup, grid: {rows}} = this.#option;
         const slidesToMove = slidesPerGroup * rows;
-        console.log(slidesToMove); 
         const slidesPerPage = slidesPerView * rows;
     
         const lastIndex = Math.ceil((totalSlides - slidesPerPage) / slidesToMove);
@@ -143,12 +142,16 @@ export default class NDSlider {
     }
     #updateSlidePosition() {
         this.#elements.wrapper.style.transitionDuration = "0.3s";
-    
-        const isLastSlide = this.#currentIndex === this.getLastIndex();
+        const { slidesPerGroup, slidesPerView, grid : {rows}} = this.#option;
         const totalSlides = this.#elements.slides.length;
-        if (isLastSlide && this.#option.slidesPerGroup && totalSlides % this.#option.slidesPerGroup !== 0 ) {
-            const targetSize = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
-            const newTranslate = -((totalSlides - this.#option.slidesPerView) * targetSize);
+        const slidesToMove = slidesPerGroup * rows;
+        const slidesPerPage = slidesPerView * rows;
+        console.log(totalSlides / slidesPerPage);
+        const isLastSlide = this.#currentIndex === this.getLastIndex();
+        // LastIndex && 남은 슬라이드 수가 slidesToMove 보다 작을 떄
+        if (isLastSlide && totalSlides - (slidesToMove * this.#currentIndex) < slidesToMove ) {
+            const slideMoveDistance = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
+            const newTranslate = -(Math.ceil(totalSlides / slidesPerPage) * slideMoveDistance);
             this.#translateSlides(newTranslate);
         } else {
             this.#translateSlides();
@@ -163,10 +166,10 @@ export default class NDSlider {
     }
     
     #translateSlides(customTranslate = null) {
-        const targetSize = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
+        const slideMoveDistance = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
 
         const newTranslate = customTranslate === null 
-            ? -(this.#currentIndex * targetSize) * this.#option.slidesPerGroup 
+            ? -(this.#currentIndex * slideMoveDistance) * this.#option.slidesPerGroup 
             : customTranslate;
 
         const transformValue = this.#option.direction === "vertical"
