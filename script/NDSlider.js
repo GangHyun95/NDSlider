@@ -46,9 +46,9 @@ export default class NDSlider {
         const { direction, spaceBetween, slidesPerView,  grid:{ rows } } = this.#option;
         const isVertical = direction === "vertical";
         const directionClass = isVertical ? "ndslider-vertical" : "ndslider-horizontal";
+        const targetProPerty = isVertical ? "height" : "width";
         this.#elements.slider.classList.add(directionClass);
         if (rows > 1) {
-            const targetProPerty = isVertical ? "height" : "width";
             const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
             const slideSize = (this.getSize(this.#elements.slides[0]) - totalSpaceBetween) / slidesPerView;
             const totalSlides = this.#elements.slides.length;
@@ -66,6 +66,12 @@ export default class NDSlider {
             if(!isVertical) {
                 this.#elements.slider.classList.add("ndslider-grid-column");
             }
+        } else {
+            const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
+            const slideSize = (this.getSize(this.#elements.slides[0]) - totalSpaceBetween) / slidesPerView;
+            this.#elements.slides.forEach((slide) => {
+                slide.style[targetProPerty] = slideSize + "px";
+            })
         }
         this.#setupEvents();
         this.#createPagination();
@@ -91,17 +97,16 @@ export default class NDSlider {
         const { spaceBetween, grid : { rows }} = this.#option;
         const totalSlides = this.#elements.slides.length;
         const marginAddedSlideIndex = Math.ceil(totalSlides / rows);
-        console.log(marginAddedSlideIndex);
         
         this.#elements.slides.forEach((slide, index) => {
             if(this.#option.direction === "vertical") {
-                slide.style.width = `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`
+                slide.style.width = rows > 1 && `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`;
                 slide.style.marginBottom = (index < totalSlides - 1) ? `${spaceBetween}px` : "0px";
-                slide.style.marginLeft = (rows > 1 && index >= marginAddedSlideIndex) && spaceBetween + "px"
+                slide.style.marginLeft = (rows > 1 && index >= marginAddedSlideIndex) && spaceBetween + "px";
             } else {
-                slide.style.height = `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`
+                slide.style.height = rows > 1 && `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`;
                 slide.style.marginRight = (index < totalSlides - 1) ? `${spaceBetween}px` : "0px";
-                slide.style.marginTop = (index % rows !== 0) && spaceBetween + "px"
+                slide.style.marginTop = (index % rows !== 0) && spaceBetween + "px";
             }
         });
         this.#updateSlidePosition();
