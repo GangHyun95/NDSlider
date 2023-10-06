@@ -16,7 +16,15 @@ export default class NDSlider {
     }
 
     getLastIndex() {
-        return Math.ceil((this.#elements.slides.length - this.#option.slidesPerView) / this.#option.slidesPerGroup);
+        const totalSlides = this.#elements.slides.length;
+        const {slidesPerView, slidesPerGroup, grid: {rows}} = this.#option;
+        const slidesToMove = slidesPerGroup * rows;
+        console.log(slidesToMove); 
+        const slidesPerPage = slidesPerView * rows;
+    
+        const lastIndex = Math.ceil((totalSlides - slidesPerPage) / slidesToMove);
+    
+        return lastIndex;
     }
 
     /* 초기화 및 설정 관련 메서드 */
