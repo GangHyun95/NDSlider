@@ -294,8 +294,8 @@ export default class NDSlider {
             if (!isDragging) return;
         
             lastDragEndTime = new Date().getTime();
-        
-            const slideSize = parent.#option.slidesPerGroup > 1 
+
+            const slideSize = parent.#option.grid.rows <= 1 
                 ? parent.getSize(parent.#elements.wrapper)
                 : parent.getSize(parent.#elements.slides[0]);
             const distance = parent.#option.direction === "vertical"
