@@ -282,12 +282,8 @@ export default class NDSlider {
                     currentTranslatePos = -((lastIndex * slideMoveDistance));
                 }
             } else {
-                -(parent.#currentIndex * slideMoveDistance) * slidesPerGroup;
+                currentTranslatePos = -(parent.#currentIndex * slideMoveDistance) * slidesPerGroup;
             }
-
-            currentTranslatePos = isLastSlide &&  totalSlides % slidesPerGroup !== 0 
-                ? -(Math.ceil(totalSlides / slidesPerPage) * slideMoveDistance)
-                : -(parent.#currentIndex * slideMoveDistance) * slidesPerGroup;
         }
 
         function dragging(e) {
