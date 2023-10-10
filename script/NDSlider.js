@@ -315,8 +315,8 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
 
-            const slideSize = rows <= 1 
-                ? parent.getSize(parent.#elements.wrapper)
+            const slideSize = slidesPerGroup > 1 
+                ? parent.getSize(parent.#elements.wrapper) / slidesPerGroup
                 : parent.getSize(parent.#elements.slides[0]);
             const distance = direction === "vertical"
                 ? e.pageY - dragStartPoint
@@ -335,7 +335,6 @@ export default class NDSlider {
             }
             parent.#restartAutoSlide(); 
             isDragging = false;
-            console.log(parent.#currentIndex);
         }
         return { dragStart, dragging, dragEnd };
     }
