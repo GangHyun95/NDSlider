@@ -313,15 +313,14 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
 
-            const slideSize = slidesPerGroup > 1 
-                ? parent.getSize(parent.#elements.slides[0])
-                : parent.getSize(parent.#elements.slides[0]);
-                console.log(slideSize);
+            const slideSize = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
             const distance = direction === "vertical"
                 ? e.pageY - dragStartPoint
                 : e.pageX - dragStartPoint;
             const slidesToMove = Math.round(Math.abs(distance) / slideSize);
-            const slideThreshold = slideSize * 0.5;
+            const slideThreshold = slidesPerGroup > 1 
+                ? slideSize
+                : slideSize * 0.5;
             const smallSlideThreshold = slideSize * 0.05;
 
             if (recentlySlided && Math.abs(distance) > smallSlideThreshold) {
