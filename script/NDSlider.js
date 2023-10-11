@@ -55,31 +55,26 @@ export default class NDSlider {
         const directionClass = isVertical ? "ndslider-vertical" : "ndslider-horizontal";
         const targetProPerty = isVertical ? "height" : "width";
         this.#elements.slider.classList.add(directionClass);
+
+        const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
+        const slideSize = (this.getSize(this.#elements.slides[0]) - totalSpaceBetween) / slidesPerView;
+        this.#elements.slides.forEach((slide) => {
+            slide.style[targetProPerty] = slideSize + "px";
+        })
+
         if (rows > 1) {
-            const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
-            const slideSize = (this.getSize(this.#elements.slides[0]) - totalSpaceBetween) / slidesPerView;
             const totalSlides = this.#elements.slides.length;
-            const totalRows = Math.ceil((totalSlides / rows));
+            const totalColumn = Math.ceil((totalSlides / rows));
+            const wrapperSize = Math.ceil((slideSize + spaceBetween) * totalColumn);
 
-            this.#elements.slides.forEach((slide) => {
-                slide.style[targetProPerty] = slideSize + "px";
-            })
-
-            const newSize = Math.ceil((slideSize + spaceBetween) * totalRows);
-
-            this.#elements.wrapper.style[targetProPerty] =  newSize + "px";
+            this.#elements.wrapper.style[targetProPerty] =  wrapperSize + "px";
             this.#elements.slider.classList.add("ndslider-grid");
 
             if(!isVertical) {
                 this.#elements.slider.classList.add("ndslider-grid-column");
             }
-        } else {
-            const totalSpaceBetween = spaceBetween * (slidesPerView - 1);
-            const slideSize = (this.getSize(this.#elements.slides[0]) - totalSpaceBetween) / slidesPerView;
-            this.#elements.slides.forEach((slide) => {
-                slide.style[targetProPerty] = slideSize + "px";
-            })
-        }
+        } 
+
         this.#setupEvents();
         this.#createPagination();
         this.#setupSlides();
@@ -122,6 +117,7 @@ export default class NDSlider {
         if (this.#currentIndex > 0) this.#currentIndex--;
         this.#updateSlidePosition();
     }
+    
     #nextSlide() {
         if (this.#currentIndex < this.getLastIndex()) {
             this.#currentIndex++;
@@ -142,23 +138,23 @@ export default class NDSlider {
     }
     #updateSlidePosition() {
         this.#elements.wrapper.style.transitionDuration = "0.3s";
-        const { slidesPerGroup, slidesPerView, grid : {rows}} = this.#option;
+        const { slidesPerGroup, slidesPerView, spaceBetween, grid : {rows}} = this.#option;
         const totalSlides = this.#elements.slides.length;
         const slidesToMove = slidesPerGroup * rows;
         const slidesPerPage = slidesPerView * rows;
         const isLastSlide = this.#currentIndex === this.getLastIndex();
+        const remainingSlides = totalSlides - (slidesToMove * this.#currentIndex);
 
         // LastIndex && 남은 슬라이드 수가 slidesToMove 보다 작을 떄
-        if (isLastSlide && totalSlides - (slidesToMove * this.#currentIndex) < slidesToMove) {
-            const slideMoveDistance = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
+        if (isLastSlide && remainingSlides < slidesToMove) {
+            const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
             let newTranslate;
             if (rows > 1) {
-                newTranslate = -(Math.ceil(totalSlides / slidesPerPage) * slideMoveDistance);
+                newTranslate = -(((this.#currentIndex - 1 ) * slideMoveDistance * slidesPerGroup) + (slideMoveDistance * remainingSlides));
             } else {
                 const lastIndex = totalSlides - slidesPerView;
                 newTranslate = -((lastIndex * slideMoveDistance));
             }
-        
             this.#translateSlides(newTranslate);
         } else {
             this.#translateSlides();
@@ -260,10 +256,6 @@ export default class NDSlider {
             lastDragEndTime = 0;
         const { direction, spaceBetween, slidesPerGroup, slidesPerView,  grid : { rows }} = parent.#option;
         const totalSlides = parent.#elements.slides.length;
-        const slidesToMove = slidesPerGroup * rows;
-        const slidesPerPage = rows * slidesPerView;
-        const isLastSlide = parent.#currentIndex === parent.getLastIndex();
-        const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
 
         function dragStart(e) {
             isDragging = true;
@@ -274,9 +266,15 @@ export default class NDSlider {
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();
 
+            const isLastSlide = parent.#currentIndex === parent.getLastIndex();
+            const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
+            const slidesPerPage = rows * slidesPerView;
+            const slidesToMove = slidesPerGroup * rows;
+            const remainingSlides = totalSlides - (slidesToMove * parent.#currentIndex);
+
             if (isLastSlide && totalSlides - (slidesToMove * parent.#currentIndex) < slidesToMove) {
                 if (rows > 1) {
-                    currentTranslatePos = -(Math.ceil(totalSlides / slidesPerPage) * slideMoveDistance);
+                    currentTranslatePos = -(((parent.#currentIndex - 1 ) * slideMoveDistance * slidesPerGroup) + (slideMoveDistance * remainingSlides));
                 } else {
                     const lastIndex = totalSlides - slidesPerView;
                     currentTranslatePos = -((lastIndex * slideMoveDistance));
@@ -316,8 +314,9 @@ export default class NDSlider {
             lastDragEndTime = new Date().getTime();
 
             const slideSize = slidesPerGroup > 1 
-                ? parent.getSize(parent.#elements.wrapper) / slidesPerGroup
+                ? parent.getSize(parent.#elements.slides[0])
                 : parent.getSize(parent.#elements.slides[0]);
+                console.log(slideSize);
             const distance = direction === "vertical"
                 ? e.pageY - dragStartPoint
                 : e.pageX - dragStartPoint;

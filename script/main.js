@@ -1,15 +1,14 @@
 import NDSlider from "./NDSlider.js";
 
 const mySlider = new NDSlider(".mySlider", {
-    // grid: {
-    //     rows: 1
-    // },
-    slidesPerView:4,
+    grid: {
+        rows: 2
+    },
+    slidesPerView:2,
     slidesPerGroup: 2,
     spaceBetween: 30,
     // autoplay: {
     //     delay: 1000,
-    //     disableOnInteraction: false,
     // },
     // direction: "vertical",
     navigation: {
