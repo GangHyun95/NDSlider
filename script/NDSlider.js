@@ -143,14 +143,17 @@ export default class NDSlider {
         const slidesToMove = slidesPerGroup * rows;
         const slidesPerPage = slidesPerView * rows;
         const isLastSlide = this.#currentIndex === this.getLastIndex();
-        const remainingSlides = totalSlides - (slidesToMove * this.#currentIndex);
+        const remainingSlides = totalSlides - (slidesToMove * this.#currentIndex) - slidesPerPage;
+        const secondLastIndex = this.getLastIndex() - 1;
+        const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
+        const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
 
         // LastIndex && 남은 슬라이드 수가 slidesToMove 보다 작을 떄
         if (isLastSlide && remainingSlides < slidesToMove) {
             const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
             let newTranslate;
             if (rows > 1) {
-                newTranslate = -(((this.#currentIndex - 1 ) * slideMoveDistance * slidesPerGroup) + (slideMoveDistance * remainingSlides));
+                newTranslate = -((secondLastIndex * slideMoveDistance) * this.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
             } else {
                 const lastIndex = totalSlides - slidesPerView;
                 newTranslate = -((lastIndex * slideMoveDistance));
@@ -261,20 +264,24 @@ export default class NDSlider {
             isDragging = true;
             dragStartPoint = direction === "vertical" ? e.pageY : e.pageX;
             startTime = new Date().getTime(); // 시작 시간 저장
-            target = e.currentTarget;
+            target = e.currentTarget; //wrapper
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();
 
-            const isLastSlide = parent.#currentIndex === parent.getLastIndex();
-            const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
-            const slidesPerPage = rows * slidesPerView;
+            
             const slidesToMove = slidesPerGroup * rows;
-            const remainingSlides = totalSlides - (slidesToMove * parent.#currentIndex);
+            const slidesPerPage = slidesPerView * rows;
+            const isLastSlide = parent.#currentIndex === parent.getLastIndex();
+            const remainingSlides = totalSlides - (slidesToMove * parent.#currentIndex) - slidesPerPage;
+            const secondLastIndex = parent.getLastIndex() - 1;
+            const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
+            const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
+            const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
 
-            if (isLastSlide && totalSlides - (slidesToMove * parent.#currentIndex) < slidesToMove) {
+            if (isLastSlide && remainingSlides < slidesToMove) {
                 if (rows > 1) {
-                    currentTranslatePos = -(((parent.#currentIndex - 1 ) * slideMoveDistance * slidesPerGroup) + (slideMoveDistance * remainingSlides));
+                    currentTranslatePos = -((secondLastIndex * slideMoveDistance) * parent.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
                 } else {
                     const lastIndex = totalSlides - slidesPerView;
                     currentTranslatePos = -((lastIndex * slideMoveDistance));
