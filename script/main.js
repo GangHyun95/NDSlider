@@ -1,11 +1,12 @@
 import NDSlider from "./NDSlider.js";
 
 const mySlider = new NDSlider(".mySlider", {
-    grid: {
-        rows: 2
-    },
-    slidesPerView:2,
-    slidesPerGroup: 10,
+    loop:true,
+    // grid: {
+    //     rows: 2
+    // },
+    // slidesPerView:2,
+    slidesPerGroup: 1,
     spaceBetween: 30,
     // autoplay: {
     //     delay: 1000,
