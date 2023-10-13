@@ -3,9 +3,9 @@ import NDSlider from "./NDSlider.js";
 const mySlider = new NDSlider(".mySlider", {
     loop:true,
     // grid: {
-    //     rows: 2
+    //     rows: 3
     // },
-    // slidesPerView:2,
+    slidesPerView: 4,
     slidesPerGroup: 1,
     spaceBetween: 30,
     // autoplay: {
