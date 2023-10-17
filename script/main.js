@@ -3,10 +3,10 @@ import NDSlider from "./NDSlider.js";
 const mySlider = new NDSlider(".mySlider", {
     loop:true,
     // grid: {
-    //     rows: 3
+    //     rows: 2
     // },
     slidesPerView: 4,
-    slidesPerGroup: 1,
+    // slidesPerGroup: 2,
     spaceBetween: 30,
     // autoplay: {
     //     delay: 1000,
