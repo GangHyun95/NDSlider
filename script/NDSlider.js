@@ -24,7 +24,7 @@ export default class NDSlider {
     
         if (loop) {
             // loop 모드에서의 마지막 인덱스 계산
-            return Math.ceil((totalSlides - 1) / slidesToMove);
+            return Math.ceil((totalSlides - slidesPerGroup) / slidesToMove);
         } else {
             // 비 loop 모드에서의 마지막 인덱스 계산
             const slidesPerPage = slidesPerView * rows;
@@ -44,6 +44,7 @@ export default class NDSlider {
         }
         this.#option = {...defaultOptions , ...option};
     }
+
     #initializeElements(selector) {
         const slider = document.querySelector(selector);
         this.#elements = {
@@ -80,7 +81,6 @@ export default class NDSlider {
                 this.#elements.slider.classList.add("ndslider-grid-column");
             }
         } 
-
         this.#setupEvents();
         this.#createPagination();
         this.#setupSlides();
@@ -133,13 +133,12 @@ export default class NDSlider {
             this.#elements.wrapper.appendChild(cloneFirst);
             this.#elements.wrapper.prepend(cloneLast);
         }
-        /** */
         this.#elements.slides = this.#elements.wrapper.querySelectorAll(".ndslider-slide")
         totalSlides = this.#elements.slides.length;
         this.#currentIndex = slidesPerView;
         this.#translateSlides();
-        console.log(this.getLastIndex());
     }
+
     #prevSlide() {
         const { loop } = this.#option;
         if(loop && this.#isTransitioning) return;
@@ -173,6 +172,7 @@ export default class NDSlider {
 
         this.#updateSlidePosition();
     }
+
     #updateSlidePosition() {
         const { slidesPerGroup, slidesPerView, spaceBetween ,loop,  grid : {rows}} = this.#option;
         const totalSlides = this.#elements.slides.length;
@@ -245,6 +245,7 @@ export default class NDSlider {
     
         this.#elements.wrapper.style.transform = transformValue;
     }
+
     #startAutoSlide() {
         if(!this.#option.autoplay || !this.#option.autoplay.delay) return;
         this.#intervalId = setInterval(() => this.#nextSlide(),this.#option.autoplay.delay);
@@ -274,6 +275,7 @@ export default class NDSlider {
             ? btnNext.classList.add("ndslider-button-disabled") 
             : btnNext.classList.remove("ndslider-button-disabled");
     }
+
     #updateBulletStatus(){
         const { pagination } = this.#elements;
         const { slidesPerView, loop } = this.#option;
@@ -300,8 +302,9 @@ export default class NDSlider {
         activeBullet?.classList.remove("ndslider-pagination-bullet-active");
         pagination.children[activeIndex]?.classList.add("ndslider-pagination-bullet-active");
     }
+    
     #createPagination() {
-        const { pagination} = this.#elements;
+        const { pagination } = this.#elements;
         if (!pagination) return;
     
         const totalBullets = this.getLastIndex() + 1;
@@ -323,7 +326,7 @@ export default class NDSlider {
             this.#restartAutoSlide();
             const children = Array.from(e.currentTarget.children);
             const index = children.indexOf(e.target);
-            this.#currentIndex = this.#option.loop ? index + 1 : index;
+            this.#currentIndex = this.#option.loop ? index + this.#option.slidesPerView : index;
             this.#updateSlidePosition();
         });
     }
@@ -358,8 +361,6 @@ export default class NDSlider {
             const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
             const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
             const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
-
-            console.log(parent.#currentIndex);
 
             if (isLastSlide && remainingSlides < slidesToMove) {
                 if (rows > 1) {
