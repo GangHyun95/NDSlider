@@ -165,7 +165,6 @@ export default class NDSlider {
             this.#currentIndex = this.getLastIndex();
             /** */
         } else if(!loop && autoplay?.delay && (this.#currentIndex === this.getLastIndex())) {
-            console.log("DD");
         }
         this.#updateSlidePosition();
     }
@@ -191,7 +190,6 @@ export default class NDSlider {
         const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
 
         let newTranslate;
-        console.log(totalSlides);
 
         if(isLastSlide && remainingSlides < slidesToMove) {
             if (rows > 1) {
@@ -234,7 +232,6 @@ export default class NDSlider {
 
     #handleTransitionEnd() {
         // parent.#elements.wrapper.style.transitionDuration = "0s";
-        console.log(this.#currentIndex);
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
             this.#elements.wrapper.style.transitionDuration = "0s";
@@ -299,15 +296,13 @@ export default class NDSlider {
         const { slidesPerView, loop } = this.#option;
 
         if( !pagination ) return;
-
         const getActiveIndex = () => {
-            const totalSlides = this.getTotalSlides(); // 복제된 슬라이드 제외;
             if(!loop) {
                 return this.#currentIndex;
             } else if (loop && this.#currentIndex < 0) {
-                return totalSlides + this.#currentIndex;
-            } else if (loop && this.#currentIndex >= totalSlides) {
-                return this.#currentIndex - totalSlides;
+                return this.getLastIndex();
+            } else if (loop && this.#currentIndex > this.getLastIndex()) {
+                return 0;
             } else {
                 return this.#currentIndex;
             }
@@ -371,7 +366,6 @@ export default class NDSlider {
             parent.#stopAutoSlide();
 
             currentTranslatePos = parent.#calculateTranslateValue();
-            console.log(parent.#currentIndex);
         }
 
         function dragging(e) {
