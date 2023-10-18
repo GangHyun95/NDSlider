@@ -6,7 +6,7 @@ const mySlider = new NDSlider(".mySlider", {
     //     rows: 2
     // },
     slidesPerView: 4,
-    // slidesPerGroup: 2,
+    slidesPerGroup: 2,
     spaceBetween: 30,
     // autoplay: {
     //     delay: 1000,

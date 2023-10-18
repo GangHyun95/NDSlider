@@ -19,9 +19,9 @@ export default class NDSlider {
 
     getLastIndex() {
         const { slidesPerView, slidesPerGroup, loop, grid: { rows } } = this.#option;
-        const totalSlides = this.#elements.slides.length;
+        const totalSlides = loop ? this.#elements.slides.length - 2 * slidesPerView : this.#elements.slides.length;
         const slidesToMove = slidesPerGroup * rows;
-    
+
         if (loop) {
             // loop 모드에서의 마지막 인덱스 계산
             return Math.ceil((totalSlides - slidesPerGroup) / slidesToMove);
@@ -82,8 +82,8 @@ export default class NDSlider {
             }
         } 
         this.#setupEvents();
-        this.#createPagination();
         this.#setupSlides();
+        this.#createPagination();
     }
     #setupEvents() {
         this.#elements.btnPrev?.addEventListener("click", () => {
@@ -134,8 +134,6 @@ export default class NDSlider {
             this.#elements.wrapper.prepend(cloneLast);
         }
         this.#elements.slides = this.#elements.wrapper.querySelectorAll(".ndslider-slide")
-        totalSlides = this.#elements.slides.length;
-        this.#currentIndex = slidesPerView;
         this.#translateSlides();
     }
 
@@ -151,6 +149,7 @@ export default class NDSlider {
     
     #nextSlide() {
         const { loop, autoplay } = this.#option;
+
         if(loop && this.#isTransitioning) return;
         this.#currentIndex++;
         if (!loop && this.#currentIndex > this.getLastIndex()) {
@@ -180,14 +179,14 @@ export default class NDSlider {
         const slidesPerPage = slidesPerView * rows;
         const isLastSlide = this.#currentIndex === this.getLastIndex();
         const remainingSlides = totalSlides - (slidesToMove * this.#currentIndex) - slidesPerPage;
-        const secondLastIndex = this.getLastIndex() - 1;
-        const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
-        const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
 
         this.#elements.wrapper.style.transitionDuration = "0.3s";
 
         // LastIndex && 남은 슬라이드 수가 slidesToMove 보다 작을 떄
         if (!loop && isLastSlide && remainingSlides < slidesToMove) {
+            const secondLastIndex = this.getLastIndex() - 1;
+            const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
+            const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
             const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
             let newTranslate;
             if (rows > 1) {
@@ -201,48 +200,50 @@ export default class NDSlider {
             this.#translateSlides();
         }
 
-        const parent = this;
-        this.#elements.wrapper.addEventListener("transitionstart", function callback() {
-            if(!parent.#option.loop) return;
-            parent.#isTransitioning = true;
-            parent.#elements.wrapper.removeEventListener("transitionstart", callback);
-        })
+        this.handleTransitionStart = this.#handleTransitionStart.bind(this) ;
+        this.handleTransitionEnd = this.#handleTransitionEnd.bind(this);
 
-        this.#elements.wrapper.addEventListener("transitionend", function callback() {
-            // parent.#elements.wrapper.style.transitionDuration = "0s";
-
-            if(!parent.#option.loop ) return;
-
-            const totalRealSlides = parent.#elements.slides.length - 2 * parent.#option.slidesPerView;
-
-            if (parent.#currentIndex < parent.#option.slidesPerView) {
-                parent.#elements.wrapper.style.transitionDuration = "0s";
-                parent.#currentIndex = parent.#currentIndex + totalRealSlides;
-                parent.#translateSlides(); // 새 인덱스로 이동
-            } else if (parent.#currentIndex >= totalRealSlides + parent.#option.slidesPerView) {
-                parent.#elements.wrapper.style.transitionDuration = "0s";
-                parent.#currentIndex = parent.#currentIndex - totalRealSlides;
-                parent.#translateSlides(); // 새 인덱스로 이동
-            }
-            parent.#isTransitioning = false;
-            parent.#elements.wrapper.removeEventListener("transitionend", callback);
-        })
+        this.#elements.wrapper.addEventListener("transitionstart", this.handleTransitionStart);
+        this.#elements.wrapper.addEventListener("transitionend", this.handleTransitionEnd);
     
         this.#updateButtonStatus();
         this.#updateBulletStatus();
     }
+
+    #handleTransitionStart() {
+        if(!this.#option.loop) return;
+        this.#isTransitioning = true;
+        this.#elements.wrapper.removeEventListener("transitionstart", this.handleTransitionStart);
+    }
+
+    #handleTransitionEnd() {
+        // parent.#elements.wrapper.style.transitionDuration = "0s";
+        if(!this.#option.loop ) return;
+        if (this.#currentIndex < 0) {
+            this.#elements.wrapper.style.transitionDuration = "0s";
+            this.#currentIndex = this.getLastIndex();
+            this.#translateSlides(); // 새 인덱스로 이동
+        } else if (this.#currentIndex > this.getLastIndex()) {
+            this.#elements.wrapper.style.transitionDuration = "0s";
+            this.#currentIndex = 0;
+            this.#translateSlides(); // 새 인덱스로 이동
+        }
+        this.#isTransitioning = false;
+        this.#elements.wrapper.removeEventListener("transitionend", this.handleTransitionEnd);
+    }
     
     #translateSlides(customTranslate = null) {
+        const { loop, slidesPerView } = this.#option;
         const slideMoveDistance = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
 
+        let loopModeAddedValue = loop ? slidesPerView : 0;
         const newTranslate = customTranslate === null 
-            ? -(this.#currentIndex * slideMoveDistance) * this.#option.slidesPerGroup 
+            ? -((this.#currentIndex + loopModeAddedValue / this.#option.slidesPerGroup) * slideMoveDistance) * this.#option.slidesPerGroup 
             : customTranslate;
-
         const transformValue = this.#option.direction === "vertical"
             ? `translate3d(0, ${newTranslate}px, 0)`
             : `translate3d(${newTranslate}px, 0, 0)`;
-    
+
         this.#elements.wrapper.style.transform = transformValue;
     }
 
@@ -268,7 +269,7 @@ export default class NDSlider {
         const { btnPrev, btnNext } = this.#elements;
         if(!btnPrev || !btnNext || this.#option.loop) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
-        index <= 0 
+        index <= 0  
             ? btnPrev.classList.add("ndslider-button-disabled") 
             : btnPrev.classList.remove("ndslider-button-disabled");
         index >= this.getLastIndex()
@@ -284,15 +285,14 @@ export default class NDSlider {
 
         const getActiveIndex = () => {
             const totalRealSlides = this.#elements.slides.length - 2 * this.#option.slidesPerView; // 복제된 슬라이드 제외
-            let realIndex = this.#currentIndex - slidesPerView; // 시작점 복제 슬라이드 제외
             if(!loop) {
                 return this.#currentIndex;
-            } else if (loop && realIndex < 0) {
-                return totalRealSlides + realIndex;
-            } else if (loop && realIndex >= totalRealSlides) {
-                return realIndex - totalRealSlides;
+            } else if (loop && this.#currentIndex < 0) {
+                return totalRealSlides + this.#currentIndex;
+            } else if (loop && this.#currentIndex >= totalRealSlides) {
+                return this.#currentIndex - totalRealSlides;
             } else {
-                return realIndex;
+                return this.#currentIndex;
             }
         };
 
@@ -326,7 +326,7 @@ export default class NDSlider {
             this.#restartAutoSlide();
             const children = Array.from(e.currentTarget.children);
             const index = children.indexOf(e.target);
-            this.#currentIndex = this.#option.loop ? index + this.#option.slidesPerView : index;
+            this.#currentIndex = index;
             this.#updateSlidePosition();
         });
     }
@@ -341,7 +341,7 @@ export default class NDSlider {
             recentlySlided = false, // 최근에 슬라이드를 넘겼는지 체크
             target,
             lastDragEndTime = 0;
-        const { direction, spaceBetween, slidesPerGroup, slidesPerView,  grid : { rows }} = parent.#option;
+        const { direction, spaceBetween, slidesPerGroup, slidesPerView, loop, grid : { rows }} = parent.#option;
         const totalSlides = parent.#elements.slides.length;
 
         function dragStart(e) {
@@ -352,25 +352,25 @@ export default class NDSlider {
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();
-            
             const slidesToMove = slidesPerGroup * rows;
             const slidesPerPage = slidesPerView * rows;
             const isLastSlide = parent.#currentIndex === parent.getLastIndex();
             const remainingSlides = totalSlides - (slidesToMove * parent.#currentIndex) - slidesPerPage;
-            const secondLastIndex = parent.getLastIndex() - 1;
-            const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
-            const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
             const slideMoveDistance = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
+            let loopModeAddedValue = loop ? slidesPerView : 0;
 
             if (isLastSlide && remainingSlides < slidesToMove) {
                 if (rows > 1) {
+                    const secondLastIndex = parent.getLastIndex() - 1;
+                    const lastRemainingSlides = totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
+                    const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
                     currentTranslatePos = -((secondLastIndex * slideMoveDistance) * parent.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
                 } else {
                     const lastIndex = totalSlides - slidesPerView;
                     currentTranslatePos = -((lastIndex * slideMoveDistance));
                 }
             } else {
-                currentTranslatePos = -(parent.#currentIndex * slideMoveDistance) * slidesPerGroup;
+                currentTranslatePos = -((parent.#currentIndex + loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
             }
         }
 
@@ -389,7 +389,6 @@ export default class NDSlider {
             parent.#translateSlides(newTranslatePos);
 
             let targetSize = parent.getSize(target);
-            
             let tempIndex = parent.#currentIndex - Math.sign(distance) * Math.round(Math.abs(distance) / targetSize);
             tempIndex = Math.min(
                 Math.max(tempIndex , 0),
