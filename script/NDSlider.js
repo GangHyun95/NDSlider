@@ -19,7 +19,7 @@ export default class NDSlider {
 
     getLastIndex() {
         const { slidesPerView, slidesPerGroup, loop, grid: { rows } } = this.#option;
-        const totalSlides = loop ? this.#elements.slides.length - 2 * slidesPerView : this.#elements.slides.length;
+        const totalSlides = this.getTotalSlides();
         const slidesToMove = slidesPerGroup * rows;
 
         if (loop) {
@@ -29,6 +29,15 @@ export default class NDSlider {
             // 비 loop 모드에서의 마지막 인덱스 계산
             const slidesPerPage = slidesPerView * rows;
             return Math.ceil((totalSlides - slidesPerPage) / slidesToMove);
+        }
+    }
+
+    getTotalSlides() {
+        const { loop, slidesPerView } = this.#option;
+        if(loop) {
+            return this.#elements.slides.length - 2 * slidesPerView;
+        } else {
+            return this.#elements.slides.length;
         }
     }
 
@@ -103,7 +112,7 @@ export default class NDSlider {
     /* 슬라이드 조작 관련 메서드 */
     #setupSlides() {
         const { spaceBetween, loop , grid : { rows }} = this.#option;
-        let totalSlides = this.#elements.slides.length;
+        let totalSlides = this.#elements.slides.length; // 클론 전
         const marginAddedSlideIndex = Math.ceil(totalSlides / rows);
 
         this.#cloneSlide();
@@ -123,7 +132,7 @@ export default class NDSlider {
 
     #cloneSlide() {
         const { loop, slidesPerView } = this.#option;
-        let totalSlides = this.#elements.slides.length;
+        let totalSlides = this.#elements.slides.length; // 클론 전
         if(!loop) return;
         for(let i = 0 ; i < slidesPerView ; i ++) {
             const cloneFirst = this.#elements.slides[i].cloneNode(true);
@@ -174,7 +183,7 @@ export default class NDSlider {
 
     #calculateTranslateValue() {
         const { spaceBetween, slidesPerGroup, slidesPerView, loop, grid : { rows }} = this.#option;
-        const totalSlides = this.#elements.slides.length;
+        const totalSlides = this.getTotalSlides();
         const slidesToMove = slidesPerGroup * rows;
         const slidesPerPage = slidesPerView * rows;
         const isLastSlide = this.#currentIndex === this.getLastIndex();
@@ -182,6 +191,7 @@ export default class NDSlider {
         const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
 
         let newTranslate;
+        console.log(totalSlides);
 
         if(isLastSlide && remainingSlides < slidesToMove) {
             if (rows > 1) {
@@ -224,6 +234,7 @@ export default class NDSlider {
 
     #handleTransitionEnd() {
         // parent.#elements.wrapper.style.transitionDuration = "0s";
+        console.log(this.#currentIndex);
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
             this.#elements.wrapper.style.transitionDuration = "0s";
@@ -290,13 +301,13 @@ export default class NDSlider {
         if( !pagination ) return;
 
         const getActiveIndex = () => {
-            const totalRealSlides = this.#elements.slides.length - 2 * this.#option.slidesPerView; // 복제된 슬라이드 제외
+            const totalSlides = this.getTotalSlides(); // 복제된 슬라이드 제외;
             if(!loop) {
                 return this.#currentIndex;
             } else if (loop && this.#currentIndex < 0) {
-                return totalRealSlides + this.#currentIndex;
-            } else if (loop && this.#currentIndex >= totalRealSlides) {
-                return this.#currentIndex - totalRealSlides;
+                return totalSlides + this.#currentIndex;
+            } else if (loop && this.#currentIndex >= totalSlides) {
+                return this.#currentIndex - totalSlides;
             } else {
                 return this.#currentIndex;
             }
@@ -348,7 +359,7 @@ export default class NDSlider {
             target,
             lastDragEndTime = 0;
         const { direction, spaceBetween, slidesPerGroup } = parent.#option;
-        const totalSlides = parent.#elements.slides.length;
+        const totalSlides = parent.#elements.slides.length; //클론 전
 
         function dragStart(e) {
             isDragging = true;
@@ -360,6 +371,7 @@ export default class NDSlider {
             parent.#stopAutoSlide();
 
             currentTranslatePos = parent.#calculateTranslateValue();
+            console.log(parent.#currentIndex);
         }
 
         function dragging(e) {
