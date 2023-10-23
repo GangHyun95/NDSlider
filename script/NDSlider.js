@@ -120,7 +120,7 @@ export default class NDSlider {
         this.#elements.slides.forEach((slide, index) => {
             if(this.#option.direction === "vertical") {
                 slide.style.width = rows > 1 && `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`;
-                slide.style.marginBottom = (index < totalSlides - 1) ? `${spaceBetween}px` : "0px";
+                slide.style.marginBottom = loop ? spaceBetween + "px" : (index < totalSlides - 1) ? `${spaceBetween}px` : "0px";
                 slide.style.marginLeft = (rows > 1 && index >= marginAddedSlideIndex) && spaceBetween + "px";
             } else {
                 slide.style.height = rows > 1 && `calc((100% - ${spaceBetween * (rows - 1)}px) / ${rows})`;
@@ -134,7 +134,7 @@ export default class NDSlider {
         const { loop, slidesPerView } = this.#option;
         let totalSlides = this.#elements.slides.length; // 클론 전
         if(!loop) return;
-        for(let i = 0 ; i < slidesPerView ; i ++) {
+        for(let i = 0 ; i < totalSlides ; i++) {
             const cloneFirst = this.#elements.slides[i].cloneNode(true);
             const cloneLast = this.#elements.slides[totalSlides - i - 1].cloneNode(true);
             cloneFirst.classList.add("clone");
@@ -142,6 +142,7 @@ export default class NDSlider {
             this.#elements.wrapper.appendChild(cloneFirst);
             this.#elements.wrapper.prepend(cloneLast);
         }
+
         this.#elements.slides = this.#elements.wrapper.querySelectorAll(".ndslider-slide")
         this.#translateSlides();
     }
@@ -177,6 +178,8 @@ export default class NDSlider {
             Math.min(newSlideIndex, this.getLastIndex())
         );
 
+        if(this.#option.loop) this.#currentIndex = newSlideIndex;
+
         this.#updateSlidePosition();
     }
 
@@ -198,12 +201,23 @@ export default class NDSlider {
                 const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
                 newTranslate = -((secondLastIndex * slideMoveDistance) * this.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
             } else {
-                const lastIndex = totalSlides - slidesPerView;
-                newTranslate = -((lastIndex * slideMoveDistance));
+                if(loop) {
+                    let loopModeAddedValue = loop ? slidesPerView : 0;
+                    newTranslate = -((this.#currentIndex + loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
+                }
+                if(!loop) {
+                    const lastIndex = totalSlides - slidesPerView;
+                    newTranslate = -((lastIndex * slideMoveDistance));
+                }
             }
         } else {
             let loopModeAddedValue = loop ? slidesPerView : 0;
             newTranslate = -((this.#currentIndex + loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
+            // if (totalSlides % slidesPerGroup !== 0 && this.#currentIndex >= this.getLastIndex()) {
+            //     const slidesAtEnd = totalSlides % slidesPerGroup;
+            //     newTranslate = -(slideMoveDistance * (totalSlides - slidesAtEnd));
+            //     console.log(this.getLastIndex());
+            // }
         }
         return newTranslate;
     }
@@ -353,7 +367,7 @@ export default class NDSlider {
             recentlySlided = false, // 최근에 슬라이드를 넘겼는지 체크
             target,
             lastDragEndTime = 0;
-        const { direction, spaceBetween, slidesPerGroup } = parent.#option;
+        const { direction, spaceBetween, slidesPerGroup, loop } = parent.#option;
         const totalSlides = parent.#elements.slides.length; //클론 전
 
         function dragStart(e) {
@@ -376,7 +390,7 @@ export default class NDSlider {
                 : e.pageX - dragStartPoint;
             let newTranslatePos = currentTranslatePos + distance;
 
-            if((parent.#currentIndex === 0 && distance > 0) || (parent.#currentIndex >=  parent.getLastIndex() && distance < 0) ) {
+            if(!loop && ((parent.#currentIndex === 0 && distance > 0) || (parent.#currentIndex >=  parent.getLastIndex() && distance < 0)) ) {
                 newTranslatePos = currentTranslatePos + (distance / 3);
             }
         
@@ -396,7 +410,7 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
 
-            const slideSize = parent.getSize(parent.#elements.slides[0]) + spaceBetween;
+            const slideSize = loop ? parent.getSize(parent.#elements.slides[0]) * (slidesPerGroup - 1 ) : parent.getSize(parent.#elements.slides[0]) + spaceBetween;
             const distance = direction === "vertical"
                 ? e.pageY - dragStartPoint
                 : e.pageX - dragStartPoint;
