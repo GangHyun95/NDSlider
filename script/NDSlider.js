@@ -244,7 +244,9 @@ export default class NDSlider {
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
             if(this.#totalSlides % slidesPerGroup !== 0) {
-                if(this.#prevLoopCounter === 0) {
+                if(this.#nextLoopCounter > 0 && this.#prevLoopCounter === 0) {
+                    this.loopModeAddedValue -= slidesPerGroup - (this.#totalSlides % slidesPerGroup);
+                } else if(this.#prevLoopCounter === 0) {
                     this.loopModeAddedValue = this.#totalSlides - (slidesPerGroup - (this.#totalSlides % slidesPerGroup));
                 } else {
                     if(this.loopModeAddedValue <= 0) {
@@ -252,17 +254,19 @@ export default class NDSlider {
                         this.#prevLoopCounter = 0;
                     } else {
                         this.loopModeAddedValue -= slidesPerGroup - (this.#totalSlides % slidesPerGroup);
-                        console.log(this.loopModeAddedValue);
                     }
                 }
                 this.#prevLoopCounter++;
+                this.#nextLoopCounter = 0;
             }
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = this.getLastIndex();
             this.#translateSlides(); 
         } else if (this.#currentIndex > this.getLastIndex()) {
             if(this.#totalSlides % slidesPerGroup !== 0) {
-                if(this.#nextLoopCounter === 0) {
+                if(this.#prevLoopCounter > 0 && this.#nextLoopCounter === 0) {
+                    this.loopModeAddedValue += slidesPerGroup - (this.#totalSlides % slidesPerGroup);
+                } else if(this.#nextLoopCounter === 0) {
                     this.loopModeAddedValue = slidesPerGroup - (this.#totalSlides % slidesPerGroup);
                 } else {
                     if(this.loopModeAddedValue >= 10) {
@@ -272,8 +276,8 @@ export default class NDSlider {
                         this.loopModeAddedValue += slidesPerGroup - (this.#totalSlides % slidesPerGroup);
                     }
                 }
-
                 this.#nextLoopCounter++;
+                this.#prevLoopCounter = 0;
             }
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = 0;
@@ -399,6 +403,7 @@ export default class NDSlider {
             const deltaTime = new Date().getTime() - lastDragEndTime;
             deltaTime < 300 ? recentlySlided = true : recentlySlided = false;
             parent.#stopAutoSlide();
+            console.log(parent.loopModeAddedValue);
 
             currentTranslatePos = parent.#calculateTranslateValue();
         }
