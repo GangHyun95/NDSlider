@@ -241,9 +241,22 @@ export default class NDSlider {
     #handleTransitionEnd() {
         // parent.#elements.wrapper.style.transitionDuration = "0s";
         const { slidesPerGroup } = this.#option;
-        console.log(this.#nextLoopCounter);
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
+            if(this.#totalSlides % slidesPerGroup !== 0) {
+                if(this.#prevLoopCounter === 0) {
+                    this.loopModeAddedValue = this.#totalSlides - (slidesPerGroup - (this.#totalSlides % slidesPerGroup));
+                } else {
+                    if(this.loopModeAddedValue <= 0) {
+                        this.loopModeAddedValue = 8;
+                        this.#prevLoopCounter = 0;
+                    } else {
+                        this.loopModeAddedValue -= slidesPerGroup - (this.#totalSlides % slidesPerGroup);
+                        console.log(this.loopModeAddedValue);
+                    }
+                }
+                this.#prevLoopCounter++;
+            }
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = this.getLastIndex();
             this.#translateSlides(); 
