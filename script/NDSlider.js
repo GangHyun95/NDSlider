@@ -250,7 +250,7 @@ export default class NDSlider {
                     this.loopModeAddedValue = this.#totalSlides - (slidesPerGroup - (this.#totalSlides % slidesPerGroup));
                 } else {
                     if(this.loopModeAddedValue <= 0) {
-                        this.loopModeAddedValue = 8;
+                        this.loopModeAddedValue = this.#totalSlides - (slidesPerGroup - (this.#totalSlides % slidesPerGroup));
                         this.#prevLoopCounter = 0;
                     } else {
                         this.loopModeAddedValue -= slidesPerGroup - (this.#totalSlides % slidesPerGroup);
@@ -270,7 +270,7 @@ export default class NDSlider {
                     this.loopModeAddedValue = slidesPerGroup - (this.#totalSlides % slidesPerGroup);
                 } else {
                     if(this.loopModeAddedValue >= 10) {
-                        this.loopModeAddedValue = 2;
+                        this.loopModeAddedValue = slidesPerGroup - (this.#totalSlides % slidesPerGroup);;
                         this.#nextLoopCounter = 0;
                     } else {
                         this.loopModeAddedValue += slidesPerGroup - (this.#totalSlides % slidesPerGroup);
