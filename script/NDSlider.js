@@ -436,7 +436,7 @@ export default class NDSlider {
         
             lastDragEndTime = new Date().getTime();
 
-            const slideSize = loop ? parent.getSize(parent.#elements.slides[0]) * (slidesPerGroup - 1 ) : parent.getSize(parent.#elements.slides[0]) + spaceBetween;
+            const slideSize = slidesPerGroup > 1 ? parent.getSize(parent.#elements.slides[0]) * (slidesPerGroup - 1 ) : parent.getSize(parent.#elements.slides[0]) + spaceBetween;
             const distance = direction === "vertical"
                 ? e.pageY - dragStartPoint
                 : e.pageX - dragStartPoint;
