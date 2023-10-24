@@ -32,15 +32,6 @@ export default class NDSlider {
         }
     }
 
-    // getTotalSlides() {
-    //     const { loop, slidesPerView } = this.#option;
-    //     if(loop) {
-    //         return this.#totalSlides;
-    //     } else {
-    //         return this.#elements.slides.length;
-    //     }
-    // }
-
     /* 초기화 및 설정 관련 메서드 */
     #initializeOptions(option) {
         const defaultOptions = {
@@ -114,6 +105,7 @@ export default class NDSlider {
     #setupSlides() {
         const { spaceBetween, loop , grid : { rows }} = this.#option;
         this.#totalSlides = this.#elements.slides.length; // 클론 전 슬라이드 갯수 저장
+        this.loopModeAddedValue = loop ? this.#totalSlides : 0;
         const marginAddedSlideIndex = Math.ceil(this.#totalSlides / rows);
 
         this.#cloneSlide();
@@ -193,7 +185,6 @@ export default class NDSlider {
         const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
 
         let newTranslate;
-        let loopModeAddedValue = loop ? this.#totalSlides : 0;
 
         if(isLastSlide && remainingSlides < slidesToMove) {
             if (rows > 1) {
@@ -203,7 +194,7 @@ export default class NDSlider {
                 newTranslate = -((secondLastIndex * slideMoveDistance) * this.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
             } else {
                 if(loop) {
-                    newTranslate = -((this.#currentIndex + loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
+                    newTranslate = -((this.#currentIndex + this.loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
                     
                 }
                 if(!loop) {
@@ -212,13 +203,11 @@ export default class NDSlider {
                 }
             }
         } else {
-            newTranslate = -((this.#currentIndex + loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
-            console.log(newTranslate);
-            if (this.#totalSlides % slidesPerGroup !== 0 && this.#currentIndex >= this.getLastIndex()) {
-                const slidesAtEnd = this.#totalSlides % slidesPerGroup;
-                newTranslate = -(slideMoveDistance * (this.#totalSlides - slidesAtEnd));
-                console.log(this.getLastIndex());
-            }
+            newTranslate = -((this.#currentIndex + this.loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
+            // if (this.#totalSlides % slidesPerGroup !== 0 && this.#currentIndex >= this.getLastIndex()) {
+            //     const slidesAtEnd = this.#totalSlides % slidesPerGroup;
+            //     newTranslate = -(slideMoveDistance * (this.#totalSlides - slidesAtEnd));
+            // }
         }
         return newTranslate;
     }
@@ -247,11 +236,12 @@ export default class NDSlider {
 
     #handleTransitionEnd() {
         // parent.#elements.wrapper.style.transitionDuration = "0s";
+        const { loop, slidesPerGroup } = this.#option;
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = this.getLastIndex();
-            this.#translateSlides(); // 새 인덱스로 이동
+            this.#translateSlides(); 
         } else if (this.#currentIndex > this.getLastIndex()) {
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = 0;
@@ -265,10 +255,8 @@ export default class NDSlider {
         const { loop, slidesPerView } = this.#option;
         const slideMoveDistance = this.getSize(this.#elements.slides[0]) + this.#option.spaceBetween;
 
-        let loopModeAddedValue = loop ? this.#totalSlides : 0;
-        console.log(loopModeAddedValue);
         const newTranslate = customTranslate === null 
-            ? -((this.#currentIndex + loopModeAddedValue / this.#option.slidesPerGroup) * slideMoveDistance) * this.#option.slidesPerGroup 
+            ? -((this.#currentIndex + this.loopModeAddedValue / this.#option.slidesPerGroup) * slideMoveDistance) * this.#option.slidesPerGroup 
             : customTranslate;
         const transformValue = this.#option.direction === "vertical"
             ? `translate3d(0, ${newTranslate}px, 0)`
