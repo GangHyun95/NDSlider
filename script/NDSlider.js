@@ -5,6 +5,8 @@ export default class NDSlider {
     #intervalId;
     #isTransitioning = false;
     #totalSlides; //클론 전 슬라이드 총 갯수
+    #nextLoopCounter;
+    #prevLoopCounter;
 
     constructor(selector, option = {}) {
         this.#initializeOptions(option);
@@ -106,6 +108,8 @@ export default class NDSlider {
         const { spaceBetween, loop , grid : { rows }} = this.#option;
         this.#totalSlides = this.#elements.slides.length; // 클론 전 슬라이드 갯수 저장
         this.loopModeAddedValue = loop ? this.#totalSlides : 0;
+        this.#nextLoopCounter = 0;
+        this.#prevLoopCounter = 0;
         const marginAddedSlideIndex = Math.ceil(this.#totalSlides / rows);
 
         this.#cloneSlide();
@@ -236,13 +240,28 @@ export default class NDSlider {
 
     #handleTransitionEnd() {
         // parent.#elements.wrapper.style.transitionDuration = "0s";
-        const { loop, slidesPerGroup } = this.#option;
+        const { slidesPerGroup } = this.#option;
+        console.log(this.#nextLoopCounter);
         if(!this.#option.loop ) return;
         if (this.#currentIndex < 0) {
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = this.getLastIndex();
             this.#translateSlides(); 
         } else if (this.#currentIndex > this.getLastIndex()) {
+            if(this.#totalSlides % slidesPerGroup !== 0) {
+                if(this.#nextLoopCounter === 0) {
+                    this.loopModeAddedValue = slidesPerGroup - (this.#totalSlides % slidesPerGroup);
+                } else {
+                    if(this.loopModeAddedValue >= 10) {
+                        this.loopModeAddedValue = 2;
+                        this.#nextLoopCounter = 0;
+                    } else {
+                        this.loopModeAddedValue += slidesPerGroup - (this.#totalSlides % slidesPerGroup);
+                    }
+                }
+
+                this.#nextLoopCounter++;
+            }
             this.#elements.wrapper.style.transitionDuration = "0s";
             this.#currentIndex = 0;
             this.#translateSlides(); // 새 인덱스로 이동
