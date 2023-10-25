@@ -5,8 +5,8 @@ const mySlider = new NDSlider(".mySlider", {
     // grid: {
     //     rows: 2
     // },
-    slidesPerView: 5,
-    slidesPerGroup: 3,
+    slidesPerView: 2,
+    slidesPerGroup: 2,
     spaceBetween: 30,
     // autoplay: {
     //     delay: 1000,
