@@ -181,17 +181,13 @@ export default class NDSlider {
     }
 
     // loop 모드 아닐 떄 && 남은 슬라이드 수가 이동해야 할 슬라이드 수보다 적을 때 남은 슬라이드 수만큼 이동
-    #calculateTranslateValue() { 
+    #calculateTranslateValue() {
         const { spaceBetween, slidesPerGroup, slidesPerView, loop, grid : { rows }} = this.#option;
-
-        if(loop) return;
-
         const slidesToMove = slidesPerGroup * rows;
         const slidesPerPage = slidesPerView * rows;
-        const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
-
         const isLastSlide = this.#currentIndex === this.getLastIndex();
         const remainingSlides = this.#totalSlides - (slidesToMove * this.#currentIndex) - slidesPerPage;
+        const slideMoveDistance = this.getSize(this.#elements.slides[0]) + spaceBetween;
 
         let newTranslate;
 
@@ -200,14 +196,19 @@ export default class NDSlider {
                 const secondLastIndex = this.getLastIndex() - 1;
                 const lastRemainingSlides = this.#totalSlides - (slidesToMove * secondLastIndex) - slidesPerPage;
                 const lastSlidesPerGroup = Math.ceil(lastRemainingSlides / rows);
-                console.log(lastSlidesPerGroup);
                 newTranslate = -((secondLastIndex * slideMoveDistance) * this.#option.slidesPerGroup + slideMoveDistance * lastSlidesPerGroup);
             } else {
-                const lastIndex = this.#totalSlides - slidesPerView;
-                newTranslate = -((lastIndex * slideMoveDistance));
+                if(loop) {
+                    newTranslate = -((this.#currentIndex + this.loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
+                    
+                }
+                if(!loop) {
+                    const lastIndex = this.#totalSlides - slidesPerView;
+                    newTranslate = -((lastIndex * slideMoveDistance));
+                }
             }
         } else {
-            newTranslate = -(this.#currentIndex * slideMoveDistance) * slidesPerGroup;
+            newTranslate = -((this.#currentIndex + this.loopModeAddedValue / slidesPerGroup) * slideMoveDistance) * slidesPerGroup;
         }
         return newTranslate;
     }
