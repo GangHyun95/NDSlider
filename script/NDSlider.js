@@ -45,6 +45,10 @@ export default class NDSlider {
             slidesPerGroup : 1,
         }
         this.#option = {...defaultOptions , ...option};
+        if(this.#option.grid.rows >= 2 && this.#option.loop) {
+            this.#option.rowsLoop = true;
+            this.#option.loop = false;
+        }
     }
 
     #initializeElements(selector) {
@@ -145,25 +149,28 @@ export default class NDSlider {
     }
 
     #prevSlide() {
-        const { loop } = this.#option;
+        const { loop, rowsLoop } = this.#option;
         if( loop && this.#isTransitioning ) return;
         this.#currentIndex--;
         if(!loop && this.#currentIndex < 0) {
-            this.#currentIndex = 0;
+            if(rowsLoop) this.#currentIndex = this.getLastIndex();
+            else this.#currentIndex = 0;
         }
         this.#updateSlidePosition();
     }
     
     #nextSlide() {
-        const { loop, autoplay } = this.#option;
+        const { loop, autoplay, rowsLoop } = this.#option;
 
         if(loop && this.#isTransitioning) return;
         this.#currentIndex++;
         if (!loop) {
             if (this.#currentIndex > this.getLastIndex()) {
-                this.#currentIndex = autoplay?.delay ? 0 : this.getLastIndex();
+                if(rowsLoop) this.#currentIndex = 0;
+                else this.#currentIndex = autoplay?.delay ? 0 : this.getLastIndex();
             }
         }
+
         this.#updateSlidePosition();
     }
 
@@ -314,7 +321,7 @@ export default class NDSlider {
     /* UI 업데이트 관련 메서드*/
     #updateButtonStatus(tempIndex = null) {
         const { btnPrev, btnNext } = this.#elements;
-        if(!btnPrev || !btnNext || this.#option.loop) return;
+        if(!btnPrev || !btnNext || this.#option.loop || this.#option.rowsLoop) return;
         const index = tempIndex === null ? this.#currentIndex : tempIndex;
         index <= 0  
             ? btnPrev.classList.add("ndslider-button-disabled") 

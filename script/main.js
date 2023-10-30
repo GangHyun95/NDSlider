@@ -1,10 +1,10 @@
 import NDSlider from "./NDSlider.js";
 
 const mySlider = new NDSlider(".mySlider", {
-    loop:true,
-    // grid: {
-    //     rows: 2
-    // },
+    // loop:true,
+    grid: {
+        rows: 2
+    },
     slidesPerView: 2,
     slidesPerGroup: 2,
     spaceBetween: 30,
